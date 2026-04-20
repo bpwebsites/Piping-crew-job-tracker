@@ -40,7 +40,7 @@ async function _sbUpsertCompleted(){
    The local cache keeps the app usable offline and syncs when reconnected.
    ═══════════════════════════════════════════════ */
 async function loadDataAsync(){
-  if(_sb&&currentUser){
+  if(_sb){
     try{
       const[br,cal,compl,allow,ot]=await Promise.all([
         _sb.from('branches').select('branch_id,data'),
@@ -67,7 +67,7 @@ async function loadDataAsync(){
         calNid=d.nid||1;calNpid=d.npid||1;
         _lsSaveCalendar();
       }
-      if(compl.data?.jobs)completedJobs=new Set(compl.data.jobs);
+      if(compl.data?.jobs){completedJobs=new Set(compl.data.jobs);try{localStorage.setItem('ct_completed',JSON.stringify(compl.data.jobs))}catch(e){}}
       if(allow.data?.allowances)vacHoursAllowance=allow.data.allowances;
       if(ot.data?.data)overtimeData=ot.data.data;
       return anyBranch;
