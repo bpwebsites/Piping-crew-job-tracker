@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CrewTrack</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='rotate(45, 16, 16)'%3E%3Crect x='-2' y='14' width='36' height='5' rx='0.5' fill='%2364748b'/%3E%3Crect x='-2' y='14' width='36' height='1.8' fill='%2394a3b8' rx='0.5'/%3E%3Crect x='-1' y='12.5' width='2.5' height='8' rx='0.6' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Ccircle cx='0.25' cy='14.5' r='0.6' fill='%23475569'/%3E%3Ccircle cx='0.25' cy='18.5' r='0.6' fill='%23475569'/%3E%3Crect x='30.5' y='12.5' width='2.5' height='8' rx='0.6' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Ccircle cx='31.75' cy='14.5' r='0.6' fill='%23475569'/%3E%3Ccircle cx='31.75' cy='18.5' r='0.6' fill='%23475569'/%3E%3Crect x='14' y='11.5' width='5' height='10' rx='0.8' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Crect x='15.8' y='8.5' width='1.4' height='3.5' rx='0.4' fill='%2378909c'/%3E%3Ccircle cx='16.5' cy='8' r='2.8' fill='none' stroke='%23004f9f' stroke-width='1.5'/%3E%3Cline x1='13.7' y1='8' x2='19.3' y2='8' stroke='%23004f9f' stroke-width='1'/%3E%3Cline x1='16.5' y1='5.2' x2='16.5' y2='10.8' stroke='%23004f9f' stroke-width='1'/%3E%3Ccircle cx='16.5' cy='8' r='0.9' fill='%23004f9f'/%3E%3C/g%3E%3C/svg%3E"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="css/styles.css"/>
+<script defer src="js/config.js"></script>
+<script defer src="js/supabase.js"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/data-models.js"></script>
+<script defer src="js/jobs.js"></script>
+<script defer src="js/gantt.js"></script>
+<script defer src="js/app.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;flex-shrink:0">
+    <div class="logo">CrewTrack</div>
+    <div class="htitle" id="branchTitle">Crew Job Tracker</div>
+    <div class="branch-tabs hidden" id="branchTabsEl">
+      <button class="branch-tab" id="btMaster" onclick="setBranch('master')">&#9733; Master</button>
+      <button class="branch-tab active" id="btPiping" onclick="setBranch('piping')">Piping</button>
+      <button class="branch-tab" id="btCivil" onclick="setBranch('civil')">Civil</button>
+      <button class="branch-tab" id="btIe" onclick="setBranch('ie')">I&amp;E</button>
+      <button class="branch-tab" id="btTimeOff" onclick="setBranch('timeoff')">Vacation/Overtime</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+    <div class="hright" id="hDate"></div>
+    <button id="leadAccessBtn" class="sign-out-btn" onclick="openLeadAccessModal()">Lead Access</button>
+    <div id="userInfo" class="hidden" style="display:flex;align-items:center;gap:10px">
+      <button id="approvalBadge" class="hidden" onclick="openApprovalModal()"
+        style="background:rgba(220,38,38,.85);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 11px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;white-space:nowrap">
+        ⏳ Pending <span id="approvalCount">0</span>
+      </button>
+      <span class="user-name" id="userNameLabel"></span>
+      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="hidden" id="mainEl">
+  <!-- Branch View -->
+  <div id="branchView">
+    <div class="stats" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="stat" id="statTJ" onclick="cycleFocus()"><div class="sl" id="statTJlbl">Total Jobs</div><div class="sv" id="sTJ">0</div><div class="sn" id="sTJn"></div></div>
+      <div class="stat" id="statTH" onclick="cycleFocus()"><div class="sl" id="statTHlbl">Total Man Hours</div><div class="sv" id="sTH">0</div><div class="sn" id="sTHn"></div></div>
+      <div class="stat" id="statHVE" onclick="focusPerson(0)"><div class="sl" id="statHVElbl">HVE Man Hours</div><div class="sv" id="sHVE">0</div><div class="sn" id="sHVEn"></div></div>
+    </div>
+    <div class="card" id="addJobCard">
+      <div class="slbl">Add a job</div>
+      <div class="form-row">
+        <div class="fg"><label>Job name</label><input id="jN" placeholder="e.g. Unit 4 piping replacement" onkeydown="if(event.key==='Enter')addJob()"/></div>
+        <div class="fg"><label>Man hours</label><input id="jH" type="number" min="1" placeholder="240" onkeydown="if(event.key==='Enter')addJob()"/></div>
+        <div class="fg"><label>Hrs / week</label><input id="jHpw" type="number" min="1" max="80" placeholder="40" onkeydown="if(event.key==='Enter')addJob()"/></div>
+        <div class="fg"><label>Assign to</label><select id="jP"></select></div>
+        <div class="fg"><label>IFA Request Date</label><input type="date" id="jIfa"/></div>
+        <div class="fg" style="display:flex;align-items:flex-end;gap:10px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;white-space:nowrap;height:36px"><input type="checkbox" id="jPending" style="width:15px;height:15px;cursor:pointer"> Pending</label>
+          <button class="btn" onclick="addJob()">+ Add job</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="manageCrewCard">
+      <div class="slbl">Manage crew</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px">
+        <div class="fg"><label>New crew member name</label><input id="pN" placeholder="e.g. John Smith" onkeydown="if(event.key==='Enter')addPerson()"/></div>
+        <div class="fg"><label>Type</label><select id="pType" class="form-sel"><option value="direct">Direct</option><option value="contractor">Contractor</option></select></div>
+        <div class="fg" style="display:flex;align-items:flex-end"><button class="btn-ghost" onclick="addPerson()">+ Add person</button></div>
+      </div>
+      <div id="peopleList"></div>
+    </div>
+    <div class="slbl" style="margin-bottom:8px">Job Timeline</div>
+    <div class="year-tabs" id="yearTabs"></div>
+    <div class="gantt-outer"><div class="gantt-inner" id="gantt"></div></div>
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#d21e1e;width:3px;height:14px;border-radius:2px"></div>Today</div>
+      <div class="li"><div class="ld" style="background:rgba(0,79,159,.1);border:1.5px solid #004f9f"></div>Drop zone</div>
+      <div class="li"><div class="ld" style="background:#d4e8d4;border:1.5px solid #6aaf6a"></div>Vacation</div>
+      <div class="li"><div class="ld" style="background:#e5e7eb;border:1.5px solid #9ca3af"></div>Pending</div>
+    </div>
+  </div>
+
+  <!-- Master View -->
+  <div id="masterView" class="hidden">
+    <div class="slbl" style="margin-bottom:16px">Master Job Overview — all divisions</div>
+    <div id="masterContent"></div>
+    <div id="masterTimelineWrap" style="display:none;margin-top:2rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="slbl" style="margin-bottom:0">Job Timeline</div>
+        <div id="masterFocusLabel"></div>
+      </div>
+      <div class="year-tabs" id="masterYearTabs"></div>
+      <div class="gantt-outer" id="masterGanttOuter"><div class="gantt-inner" id="masterGantt"></div></div>
+      <div class="legend" style="margin-top:10px">
+        <div class="li"><div class="ld" style="background:#d21e1e;width:3px;height:14px;border-radius:2px"></div>Today</div>
+        <div class="li"><div class="ld" style="background:#d4e8d4;border:1.5px solid #6aaf6a"></div>Vacation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vacation Calendar View -->
+  <div id="timeOffView" class="hidden">
+    <div class="card">
+      <div class="slbl" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <span>Add Vacation</span><span class="collapse-arrow" style="font-size:10px;color:var(--text-muted)">&#9660;</span>
+      </div>
+      <div class="collapse-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-top:10px">
+          <div class="fg"><label>Person</label><select id="vacCalP" onchange="updateVacTypeVisibility()"></select></div>
+          <div class="fg" id="vacTypeWrap" style="display:none"><label>Type</label><select id="vacCalType" onchange="syncFloatingDate()" class="form-sel"><option value="vacation">Vacation</option><option value="floating">Floating Holiday</option></select></div>
+          <div class="fg"><label>Name (optional)</label><input id="vacCalN" placeholder="e.g. Vacation"/></div>
+          <div class="fg"><label>Start date</label><input type="date" id="vacCalS" onchange="syncFloatingDate()"/></div>
+          <div class="fg"><label>End date</label><input type="date" id="vacCalE"/></div>
+          <div class="fg"><label>Hours / day</label><div style="display:flex;gap:4px;align-items:stretch"><button id="vacHpdAllDay" class="btn" data-hpd-active="1" onclick="setVacHpdAllDay()" style="white-space:nowrap;font-size:12px;padding:5px 8px">All day</button><input type="number" id="vacHpdCustom" min="0.5" max="10" step="0.5" placeholder="h" style="width:44px;opacity:.4" oninput="vacHpdCustomInput()" onfocus="vacHpdCustomFocus()"/></div></div>
+          <div class="fg" style="display:flex;align-items:flex-end"><button class="btn" onclick="addVacFromCalendar()">+ Add</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="slbl" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <span>Add Overtime</span><span class="collapse-arrow" style="font-size:10px;color:var(--text-muted)">&#9660;</span>
+      </div>
+      <div class="collapse-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:10px">
+          <div class="fg"><label>Person</label><select id="otCalP"></select></div>
+          <div class="fg"><label>Date</label><input type="date" id="otCalD"/></div>
+          <div class="fg" style="display:flex;align-items:flex-end"><button class="btn" onclick="addOvertime()">+ Add</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="card collapsed" id="setVacHoursCard">
+      <div class="slbl" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <span id="setVacHoursTitle">Manage Vacation Hours</span><span class="collapse-arrow" style="font-size:10px;color:var(--text-muted)">&#9660;</span>
+      </div>
+      <div class="collapse-body" style="margin-top:10px"><div id="vacHoursTracker"></div></div>
+    </div>
+    <div class="card" id="manageCalPeopleCard">
+      <div class="slbl" onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <span>Manage Calendar People</span><span class="collapse-arrow" style="font-size:10px;color:var(--text-muted)">&#9660;</span>
+      </div>
+      <div class="collapse-body">
+        <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end;margin-top:10px;margin-bottom:12px">
+          <div class="fg"><label>Add a person (leads, managers, etc.)</label><input id="vacCalNewName" placeholder="e.g. Mike Reynolds" onkeydown="if(event.key==='Enter')addCalendarPerson()"/></div>
+          <div class="fg"><label>Type</label><select id="calPType" class="form-sel"><option value="direct">Direct</option><option value="contractor">Contractor</option></select></div>
+          <div class="fg" style="display:flex;align-items:flex-end"><button class="btn-ghost" onclick="addCalendarPerson()">+ Add person</button></div>
+        </div>
+        <div id="calendarPeopleList"></div>
+      </div>
+    </div>
+    <div class="slbl" style="margin-bottom:8px">Vacation Calendar</div>
+    <div class="year-tabs" id="vacYearTabs"></div>
+    <div class="gantt-outer" id="vacGanttOuter"><div class="gantt-inner" id="vacGantt"></div></div>
+    <div class="legend" style="margin-top:10px">
+      <div class="li"><div class="ld" style="background:#d21e1e;width:3px;height:14px;border-radius:2px"></div>Today</div>
+      <div class="li"><div class="ld" style="background:#d4e8d4;border:1.5px solid #6aaf6a"></div>Vacation</div>
+      <div class="li"><div class="ld" style="background:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%226%22 height=%226%22%3E%3Crect width=%226%22 height=%226%22 fill=%22rgba(0,0,0,0.04)%22/%3E%3Cline x1=%220%22 y1=%220%22 x2=%220%22 y2=%226%22 stroke=%22rgba(0,0,0,0.12)%22 stroke-width=%221.5%22 transform=%22rotate(45,3,3)%22/%3E%3C/svg%3E');border:1px solid rgba(0,0,0,.12)"></div>Weekend</div>
+      <div class="li"><div class="ld" style="background:rgba(185,28,28,.25);border:1px solid rgba(185,28,28,.4)"></div>Overtime</div>
+    </div>
+  </div>
+</main>
+
+<!-- LEAD ACCESS MODAL -->
+<div id="leadAccessModal" class="hidden">
+  <div style="background:#fff;border-radius:var(--rl);padding:1.5rem;width:320px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--blue);margin-bottom:6px">Lead Access</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Enter the access code to enable lead mode.</div>
+    <input type="password" id="leadCodeInput" placeholder="Access code" autocomplete="off" style="font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg);border:1px solid rgba(0,0,0,.15);border-radius:var(--r);padding:9px 12px;height:40px;width:100%;outline:none;box-sizing:border-box;display:block;margin-bottom:8px" onkeydown="if(event.key==='Enter')submitLeadCode()"/>
+    <button onclick="submitLeadCode()" style="width:100%;height:40px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">Submit</button>
+    <div id="leadCodeErr" style="font-size:12px;color:#dc2626;margin-top:8px;min-height:16px"></div>
+    <div style="text-align:right;margin-top:6px"><a onclick="closeLeadAccessModal()" style="font-size:12px;color:var(--text-muted);cursor:pointer">Cancel</a></div>
+    <div id="devPanel" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Dev testing only</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="devBypass('lead')" class="test-btn" style="background:#e8f0fe;color:var(--blue);border:1px solid #c5d8f8">Test as Lead</button>
+        <button onclick="devBypass('designer')" class="test-btn" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">Test as Designer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg hidden" id="editModal">
+  <div class="modal">
+    <h2>Edit job</h2>
+    <div class="mfg"><label>Job name</label><input id="eN"/></div>
+    <div class="mfg"><label>Man hours</label><input id="eH" type="number" min="1"/></div>
+    <div class="mfg"><label>Hrs / week</label><input id="eHpw" type="number" min="1" max="80" placeholder="40"/></div>
+    <div class="mfg"><label>IFA Request Date (optional)</label><input type="date" id="eIfa"/></div>
+    <p id="eShiftNote" style="font-size:11px;color:var(--text-muted);margin-top:-4px;margin-bottom:8px"></p>
+    <div class="mfg" style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--text-muted);font-weight:500">Status</label>
+      <div id="eStatusWrap" style="display:flex;gap:6px;margin-top:6px">
+        <button id="eStatusConfirmed" onclick="setEditStatus(false)" style="flex:1;padding:8px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);border:2px solid #86efac;background:#dcfce7;color:#15803d">Approved</button>
+        <button id="eStatusPending" onclick="setEditStatus(true)" style="flex:1;padding:8px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);border:2px solid #d1d5db;background:#f3f4f6;color:#6b7280">Pending</button>
+      </div>
+    </div>
+    <div class="mrow">
+      <button class="btn" onclick="saveEdit()">Save</button>
+      <button class="btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg hidden" id="confirmModal">
+  <div class="modal" style="width:360px">
+    <h2>Are you sure?</h2>
+    <p id="confirmMsg" style="font-size:14px;color:var(--text);margin-bottom:1.2rem;line-height:1.5"></p>
+    <div class="mrow">
+      <button class="btn" onclick="confirmYes()">Yes, delete</button>
+      <button class="btn-ghost" onclick="closeModal('confirmModal')">No, cancel</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg hidden" id="approvalModal">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <h2 style="display:flex;align-items:center;justify-content:space-between">
+      <span>User Approvals</span>
+      <span id="approvalBadgeCount" style="font-size:12px;font-weight:600;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:10px;padding:2px 10px"></span>
+    </h2>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:1rem;margin-top:-6px">New accounts await approval before they can access the app. Assign a role and approve, or reject.</p>
+    <div id="approvalList" style="max-height:360px;overflow-y:auto"></div>
+    <div class="mrow" style="margin-top:1rem">
+      <button class="btn-ghost" onclick="closeModal('approvalModal')">Close</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="dg"></div>
+
+<!-- SCRIPT -->
+</body>
+</html>

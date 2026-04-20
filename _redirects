@@ -1,0 +1,2 @@
+# Force HTTPS on all requests
+http://crewtrack.netlify.app/* https://crewtrack.netlify.app/:splat 301!
