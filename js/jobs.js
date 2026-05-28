@@ -21,6 +21,7 @@ function addPerson(){
   const type=$('pType').value;
   const id=npid++;
   people.push({id,name,type,floatingHolidays:type==='direct'?companySettings.floatingHolidays:0});queues[id]=[];vacations[id]=[];
+  if(companySettings.defaultVacHours>0)vacHoursAllowance[activeBranch+':'+id]=companySettings.defaultVacHours;
   auditLog('person_added',{branch:activeBranch,name,type});
   $('pN').value='';refreshAll();
 }

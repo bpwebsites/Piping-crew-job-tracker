@@ -107,12 +107,14 @@ function auditLog(action,details){
 async function loadCompanySettings(){
   if(!_sb)return;
   try{
-    const keys=['branches_config','type_labels','floating_holidays','floating_holidays_enabled','floating_holidays_label','work_week','hve_enabled','hve_label'];
+    const keys=['company_name','branches_config','type_labels','floating_holidays','floating_holidays_enabled','floating_holidays_label','work_week','hve_enabled','hve_label','default_vac_hours'];
     const{data}=await _sb.from('app_settings').select('key,value').in('key',keys);
     if(!data)return;
     data.forEach(row=>{
       try{
-        if(row.key==='branches_config'){
+        if(row.key==='company_name')companySettings.companyName=row.value||'';
+        else if(row.key==='default_vac_hours')companySettings.defaultVacHours=Number(row.value)||80;
+        else if(row.key==='branches_config'){
           const saved=JSON.parse(row.value);
           if(saved&&saved.length){
             BRANCHES.length=0;

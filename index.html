@@ -7,44 +7,40 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg transform='rotate(45, 16, 16)'%3E%3Crect x='-2' y='14' width='36' height='5' rx='0.5' fill='%2364748b'/%3E%3Crect x='-2' y='14' width='36' height='1.8' fill='%2394a3b8' rx='0.5'/%3E%3Crect x='-1' y='12.5' width='2.5' height='8' rx='0.6' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Ccircle cx='0.25' cy='14.5' r='0.6' fill='%23475569'/%3E%3Ccircle cx='0.25' cy='18.5' r='0.6' fill='%23475569'/%3E%3Crect x='30.5' y='12.5' width='2.5' height='8' rx='0.6' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Ccircle cx='31.75' cy='14.5' r='0.6' fill='%23475569'/%3E%3Ccircle cx='31.75' cy='18.5' r='0.6' fill='%23475569'/%3E%3Crect x='14' y='11.5' width='5' height='10' rx='0.8' fill='%2394a3b8' stroke='%23475569' stroke-width='0.4'/%3E%3Crect x='15.8' y='8.5' width='1.4' height='3.5' rx='0.4' fill='%2378909c'/%3E%3Ccircle cx='16.5' cy='8' r='2.8' fill='none' stroke='%23004f9f' stroke-width='1.5'/%3E%3Cline x1='13.7' y1='8' x2='19.3' y2='8' stroke='%23004f9f' stroke-width='1'/%3E%3Cline x1='16.5' y1='5.2' x2='16.5' y2='10.8' stroke='%23004f9f' stroke-width='1'/%3E%3Ccircle cx='16.5' cy='8' r='0.9' fill='%23004f9f'/%3E%3C/g%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<link rel="stylesheet" href="css/styles.css"/>
-<script defer src="js/config.js"></script>
-<script defer src="js/supabase.js"></script>
-<script defer src="js/auth.js"></script>
-<script defer src="js/data-models.js"></script>
-<script defer src="js/jobs.js"></script>
-<script defer src="js/gantt.js"></script>
-<script defer src="js/app.js"></script>
+<link rel="stylesheet" href="css/styles.css?v=6"/>
+<script defer src="js/config.js?v=6"></script>
+<script defer src="js/supabase.js?v=6"></script>
+<script defer src="js/auth.js?v=6"></script>
+<script defer src="js/data-models.js?v=6"></script>
+<script defer src="js/jobs.js?v=6"></script>
+<script defer src="js/gantt.js?v=6"></script>
+<script defer src="js/app.js?v=6"></script>
 </head>
 <body>
 
-<!-- HEADER -->
-<header>
-  <div style="display:flex;align-items:center;flex-shrink:0">
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
     <div class="logo">CT</div>
-    <div class="htitle" id="branchTitle">Crew Job Tracker</div>
-    <div class="branch-tabs hidden" id="branchTabsEl">
-      <button class="branch-tab" id="btMaster" onclick="setBranch('master')">&#9733; Master</button>
-      <button class="branch-tab branch-specific active" id="btPiping" onclick="setBranch('piping')">Piping</button>
-      <button class="branch-tab branch-specific" id="btCivil" onclick="setBranch('civil')">Civil</button>
-      <button class="branch-tab branch-specific" id="btIe" onclick="setBranch('ie')">I&amp;E</button>
-      <button class="branch-tab" id="btTimeOff" onclick="setBranch('timeoff')">Vacation/Overtime</button>
-      <button class="branch-tab admin-tab" id="btAdmin" onclick="setBranch('admin')" style="display:none">&#9881; Admin</button>
-    </div>
+    <div id="sbCompanyName" class="sb-company-name" style="display:none"></div>
   </div>
-  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+  <nav class="branch-tabs hidden" id="branchTabsEl">
+    <button class="branch-tab" id="btMaster" data-tooltip="Master" onclick="setBranch('master')">&#9733;</button>
+    <button class="branch-tab branch-specific active" id="btPiping" data-tooltip="Piping" onclick="setBranch('piping')">PI</button>
+    <button class="branch-tab branch-specific" id="btCivil" data-tooltip="Civil" onclick="setBranch('civil')">CI</button>
+    <button class="branch-tab branch-specific" id="btIe" data-tooltip="I&amp;E" onclick="setBranch('ie')">IE</button>
+    <button class="branch-tab" id="btTimeOff" data-tooltip="Vacation / OT" onclick="setBranch('timeoff')">&#9632;</button>
+    <button class="branch-tab admin-tab" id="btAdmin" data-tooltip="Admin" onclick="setBranch('admin')" style="display:none">&#9881;</button>
+  </nav>
+  <div class="sb-bottom">
+    <button id="leadAccessBtn" class="sb-icon-btn" data-tooltip="Lead Access" onclick="openLeadAccessModal()">&#128274;</button>
+    <div id="userInfo" class="hidden">
+      <button id="approvalBadge" class="hidden sb-icon-btn" data-tooltip="Pending Approvals" onclick="openApprovalModal()" style="color:#ef4444">&#9203;</button>
+      <button class="sb-icon-btn" data-tooltip="Sign out" onclick="signOut()">&#10006;</button>
+    </div>
     <div class="hright" id="hDate"></div>
-    <button id="leadAccessBtn" class="sign-out-btn" onclick="openLeadAccessModal()">Lead Access</button>
-    <div id="userInfo" class="hidden" style="display:flex;align-items:center;gap:10px">
-      <button id="approvalBadge" class="hidden" onclick="openApprovalModal()"
-        style="background:rgba(220,38,38,.85);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 11px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;white-space:nowrap">
-        ⏳ Pending <span id="approvalCount">0</span>
-      </button>
-      <span class="user-name" id="userNameLabel"></span>
-      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
-    </div>
   </div>
-</header>
+</aside>
 
 <!-- MAIN -->
 <main class="hidden" id="mainEl">
@@ -174,6 +170,15 @@
     </div>
 
     <div class="card">
+      <div class="slbl">Company</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">The client's company name — appears in the browser tab and under the logo in the sidebar.</p>
+      <div style="max-width:360px">
+        <div class="fg"><label>Company name</label><input id="adminCompanyName" class="admin-inp" placeholder="e.g. Acme Construction" maxlength="60" onkeydown="if(event.key==='Enter')adminSaveCompany()"/></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn-ghost" onclick="adminSaveCompany()">Save changes</button></div>
+    </div>
+
+    <div class="card">
       <div class="slbl">Branches</div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Rename, recolor, add, or delete branches to match the company's departments. Deleting a branch permanently removes all its jobs and crew.</p>
       <div id="adminBranchSection"></div>
@@ -215,6 +220,12 @@
         <div class="fg">
           <label>How many per Type 1 employee</label>
           <input id="adminFloatingCount" type="number" min="0" max="20" class="admin-inp" placeholder="3"/>
+        </div>
+      </div>
+      <div id="adminVacExtra" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">Vacation Hours</div>
+        <div style="max-width:260px">
+          <div class="fg"><label>Default allowance for new hires (hours)</label><input id="adminDefaultVacHours" type="number" min="0" max="9999" class="admin-inp" placeholder="80"/></div>
         </div>
       </div>
       <div style="margin-top:14px"><button class="btn-ghost" onclick="adminSaveCalendar()">Save changes</button></div>

@@ -103,6 +103,7 @@ let _adminCodeMissing=false;
    are used when no saved settings exist yet.
    ═══════════════════════════════════════════════ */
 let companySettings={
+  companyName:'',
   typeLabels:{direct:'Direct',contractor:'Contractor'},
   floatingHolidays:3,
   floatingHolidaysEnabled:true,
@@ -110,4 +111,5 @@ let companySettings={
   workWeek:'mon-fri',
   hveEnabled:true,
   hveLabel:'HVE',
+  defaultVacHours:80,
 };

@@ -62,9 +62,9 @@ async function submitLeadCode(){
   if(!_sb){$('leadCodeErr').textContent='Connection unavailable.';return}
   $('leadCodeErr').textContent='Checking\u2026';
   try{
-    const{data,error}=await _sb.from('app_settings').select('value').eq('key','lead_code').single();
-    if(error||!data){$('leadCodeErr').textContent='Unable to verify code.';return}
-    if(code!==data.value){$('leadCodeErr').textContent='Incorrect access code.';return}
+    const{data,error}=await _sb.rpc('verify_lead_code',{code});
+    if(error){$('leadCodeErr').textContent='Unable to verify code.';return}
+    if(!data){$('leadCodeErr').textContent='Incorrect access code.';return}
     resetRateLimit('login');
     localStorage.setItem('crewtrack_lead_code',code);
     closeLeadAccessModal();
@@ -78,7 +78,7 @@ async function submitLeadCode(){
 function activateLeadMode(){
   currentUser={id:'lead-local',user_metadata:{full_name:'Lead',role:'lead'}};
   currentRole='lead';
-  $('userNameLabel').textContent='Lead';
+  if($('userNameLabel'))$('userNameLabel').textContent='Lead';
   $('leadAccessBtn').style.display='none';
   $('userInfo').classList.remove('hidden');$('userInfo').style.display='flex';
   $('branchTabsEl').classList.remove('hidden');
@@ -236,6 +236,7 @@ let _adminAttempts=[];
 
 function openAdminModal(){
   if(isAdminMode){setBranch('admin');return}
+  if(_adminCodeMissing){isAdminMode=true;setBranch('admin');return}
   $('adminAccessModal').classList.remove('hidden');
   $('adminCodeInput').value='';$('adminCodeErr').textContent='';
   setTimeout(()=>$('adminCodeInput').focus(),50);

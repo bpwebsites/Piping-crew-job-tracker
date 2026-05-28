@@ -38,7 +38,8 @@ function initBranchTabs(){
     const btn=document.createElement('button');
     btn.className='branch-tab branch-specific'+(activeBranch===b.id?' active':'');
     btn.id='bt_'+b.id;
-    btn.textContent=b.label;
+    btn.setAttribute('data-tooltip',b.label);
+    btn.textContent=b.label.substring(0,2).toUpperCase();
     btn.onclick=()=>setBranch(b.id);
     ref.insertAdjacentElement('afterend',btn);
     ref=btn;
@@ -83,6 +84,11 @@ function applyCompanySettings(){
   if(hveLbl)hveLbl.textContent=(s.hveLabel||'HVE')+' Man Hours';
   const statsGrid=document.querySelector('.stats');
   if(statsGrid)statsGrid.style.gridTemplateColumns=s.hveEnabled?'1fr 1fr 1fr':'1fr 1fr';
+  // Company name — browser tab + sidebar
+  const name=s.companyName||'';
+  document.title=name?name+' — CrewTimeline':'CrewTimeline';
+  const sbName=$('sbCompanyName');
+  if(sbName){sbName.textContent=name;sbName.style.display=name?'':'none'}
 }
 
 /* ═══════════════════════════════════════════════
@@ -117,6 +123,8 @@ function renderAdmin(){
         <button class="btn" style="margin-bottom:0" onclick="adminAddBranch()">+ Add</button>
       </div>
     </div>`;
+  // Company name
+  const cn=$('adminCompanyName');if(cn)cn.value=s.companyName||'';
   // People types
   $('adminTypeDirect').value=s.typeLabels.direct||'Direct';
   $('adminTypeContractor').value=s.typeLabels.contractor||'Contractor';
@@ -125,6 +133,7 @@ function renderAdmin(){
   const floatEn=$('adminFloatEnabled');if(floatEn)floatEn.value=s.floatingHolidaysEnabled?'yes':'no';
   const floatLbl=$('adminFloatLabel');if(floatLbl)floatLbl.value=s.floatingHolidaysLabel||'Floating Holiday';
   $('adminFloatingCount').value=s.floatingHolidays;
+  const dvh=$('adminDefaultVacHours');if(dvh)dvh.value=s.defaultVacHours||80;
   const floatExtra=$('adminFloatExtra');if(floatExtra)floatExtra.style.display=s.floatingHolidaysEnabled?'':'none';
   // HVE
   $('adminHveEnabled').value=s.hveEnabled?'yes':'no';
@@ -172,6 +181,14 @@ async function adminDeleteBranch(bid){
   }else{BRANCHES.splice(idx,0,b);toast('Save failed — check connection.','err')}
 }
 
+async function adminSaveCompany(){
+  const name=($('adminCompanyName').value||'').trim();
+  companySettings.companyName=name;
+  const ok=await saveCompanySetting('company_name',name);
+  if(ok){toast('Company name saved.','ok');applyCompanySettings()}
+  else toast('Save failed.','err');
+}
+
 async function adminSaveTypes(){
   const d=$('adminTypeDirect').value.trim();
   const c=$('adminTypeContractor').value.trim();
@@ -190,15 +207,19 @@ async function adminSaveCalendar(){
   const floatLabel=(floatLbl?floatLbl.value.trim():'')||'Floating Holiday';
   const fh=Number($('adminFloatingCount').value);
   if(isNaN(fh)||fh<0||fh>20){toast('Floating holidays must be 0–20.','err');return}
+  const dvh=Number($('adminDefaultVacHours')?.value)||80;
+  if(isNaN(dvh)||dvh<0){toast('Default vacation hours must be 0 or more.','err');return}
   companySettings.workWeek=ww;
   companySettings.floatingHolidaysEnabled=floatEnabled;
   companySettings.floatingHolidaysLabel=floatLabel;
   companySettings.floatingHolidays=fh;
+  companySettings.defaultVacHours=dvh;
   const results=await Promise.all([
     saveCompanySetting('work_week',ww),
     saveCompanySetting('floating_holidays_enabled',floatEnabled),
     saveCompanySetting('floating_holidays_label',floatLabel),
     saveCompanySetting('floating_holidays',fh),
+    saveCompanySetting('default_vac_hours',dvh),
   ]);
   if(results.every(Boolean)){toast('Calendar settings saved.','ok');const fe=$('adminFloatExtra');if(fe)fe.style.display=floatEnabled?'':'none'}
   else toast('Save failed.','err');
@@ -252,6 +273,22 @@ async function adminChangeAdminCode(){
    ═══════════════════════════════════════════════ */
 
 $('hDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+
+// 5 quick taps on the CT logo reveals the hidden admin gear tab
+let _logoTaps=0,_logoTapTimer=null;
+document.querySelector('.sb-logo')?.addEventListener('click',()=>{
+  _logoTaps++;
+  clearTimeout(_logoTapTimer);
+  if(_logoTaps>=5){
+    _logoTaps=0;
+    const ab=$('btAdmin');if(!ab)return;
+    const visible=ab.style.display!=='none'&&ab.style.display!=='';
+    ab.style.display=visible?'none':'';
+    if(!visible)toast('Admin panel unlocked.','ok');
+  }else{
+    _logoTapTimer=setTimeout(()=>{_logoTaps=0},2000);
+  }
+});
 $('editModal').addEventListener('click',e=>{if(e.target===$('editModal'))closeModal('editModal')});
 $('confirmModal').addEventListener('click',e=>{if(e.target===$('confirmModal'))closeModal('confirmModal')});
 $('approvalModal').addEventListener('click',e=>{if(e.target===$('approvalModal'))closeModal('approvalModal')});
@@ -332,6 +369,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Load company settings (branch labels, type labels, HVE config, etc.) and apply to UI
   await loadCompanySettings();
   applyCompanySettings();
+  // Check if admin code exists — if not, first-time setup skips the code prompt
+  if(_sb){try{const{error}=await _sb.from('app_settings').select('key').eq('key','admin_code').single();if(error)_adminCodeMissing=true}catch(e){}}
   // Show admin tab only when ?admin=true is in the URL
   if(_adminAllowed){const ab=$('btAdmin');if(ab)ab.style.display=''}
   try{
@@ -347,10 +386,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     const savedCode=localStorage.getItem('crewtrack_lead_code');
     if(savedCode&&_sb){
       try{
-        const{data}=await _sb.from('app_settings').select('value').eq('key','lead_code').single();
-        if(data&&savedCode===data.value){activateLeadMode();return}
-        localStorage.removeItem('crewtrack_lead_code');// code changed — revoke
-      }catch(e){}// Supabase unreachable — stay in designer
+        const{data}=await _sb.rpc('verify_lead_code',{code:savedCode});
+        if(data){activateLeadMode();return}
+        localStorage.removeItem('crewtrack_lead_code');
+      }catch(e){}
     }
   }catch(e){}
 })();
