@@ -20,7 +20,7 @@ function addPerson(){
   if(!name)return;
   const type=$('pType').value;
   const id=npid++;
-  people.push({id,name,type,floatingHolidays:type==='direct'?3:0});queues[id]=[];vacations[id]=[];
+  people.push({id,name,type,floatingHolidays:type==='direct'?companySettings.floatingHolidays:0});queues[id]=[];vacations[id]=[];
   auditLog('person_added',{branch:activeBranch,name,type});
   $('pN').value='';refreshAll();
 }
@@ -238,7 +238,7 @@ function addCalendarPerson(){
   const name=validateName($('vacCalNewName').value,'person name',LIMITS.PERSON_NAME);
   if(!name)return;
   const type=$('calPType').value;
-  calendarPeople.push({id:calNpid++,name,type,floatingHolidays:type==='direct'?3:0});
+  calendarPeople.push({id:calNpid++,name,type,floatingHolidays:type==='direct'?companySettings.floatingHolidays:0});
   calendarVacations[calendarPeople[calendarPeople.length-1].id]=[];
   $('vacCalNewName').value='';saveCalendarData();updateVacSelect();renderCalendarPeopleList();renderVacCalendar();
 }
@@ -291,12 +291,12 @@ function resolvePersonInfo(source,pid){
     const cp=calendarPeople.find(x=>x.id===pid);
     if(!cp)return null;
     const isDirect=(cp.type||'direct')==='direct';
-    return{isDirect,maxFh:cp.floatingHolidays||(isDirect?3:0),usedFh:(calendarVacations[pid]||[]).filter(v=>v.isFloatingHoliday).length,name:cp.name,type:cp.type||'direct'};
+    return{isDirect,maxFh:cp.floatingHolidays||(isDirect?companySettings.floatingHolidays:0),usedFh:(calendarVacations[pid]||[]).filter(v=>v.isFloatingHoliday).length,name:cp.name,type:cp.type||'direct'};
   }
   const bd=branchData[source];if(!bd)return null;
   const p=bd.people.find(x=>x.id===pid);if(!p)return null;
   const isDirect=(p.type||'direct')==='direct';
-  return{isDirect,maxFh:p.floatingHolidays||(isDirect?3:0),usedFh:(bd.vacations[pid]||[]).filter(v=>v.isFloatingHoliday).length,name:p.name,type:p.type||'direct'};
+  return{isDirect,maxFh:p.floatingHolidays||(isDirect?companySettings.floatingHolidays:0),usedFh:(bd.vacations[pid]||[]).filter(v=>v.isFloatingHoliday).length,name:p.name,type:p.type||'direct'};
 }
 
 function updateVacTypeVisibility(){
@@ -304,10 +304,12 @@ function updateVacTypeVisibility(){
   if(!raw){wrap.style.display='none';return}
   const[source,idStr]=raw.split(':');
   const info=resolvePersonInfo(source,Number(idStr));
-  if(!info||!info.isDirect){wrap.style.display='none';$('vacCalType').value='vacation';syncFloatingDate();return}
+  const floatEnabled=companySettings.floatingHolidaysEnabled!==false;
+  if(!floatEnabled||!info||!info.isDirect){wrap.style.display='none';$('vacCalType').value='vacation';syncFloatingDate();return}
   wrap.style.display='';
   const remaining=info.maxFh-info.usedFh,sel=$('vacCalType');
-  sel.options[1].textContent='Floating Holiday ('+remaining+' left)';
+  const fhLabel=companySettings.floatingHolidaysLabel||'Floating Holiday';
+  sel.options[1].textContent=fhLabel+' ('+remaining+' left)';
   if(remaining<=0){sel.options[1].disabled=true;sel.value='vacation'}else sel.options[1].disabled=false;
   syncFloatingDate();
 }
@@ -349,9 +351,11 @@ function addVacFromCalendar(){
   if(isFloating){
     $('vacCalE').value=s;
     const info=resolvePersonInfo(source,pid);
-    if(info&&info.maxFh-info.usedFh<=0){toast(info.name+' has used all '+info.maxFh+' floating holidays.','err');return}
+    const fhLbl=companySettings.floatingHolidaysLabel||'Floating Holiday';
+    if(info&&info.maxFh-info.usedFh<=0){toast(info.name+' has used all '+info.maxFh+' '+fhLbl+'s.','err');return}
   }
-  const vacName=isFloating?(name==='Vacation'?'Floating Holiday':name):name;
+  const fhLabel=companySettings.floatingHolidaysLabel||'Floating Holiday';
+  const vacName=isFloating?(name==='Vacation'?fhLabel:name):name;
   const hpd=getVacHpd();
   const vacObj=(id,pid)=>({id,pid,name:vacName,startIso:s,endIso:isFloating?s:e,isFloatingHoliday:isFloating,...(hpd!=null?{hoursPerDay:hpd}:{})});
   if(source==='cal'){
@@ -443,7 +447,7 @@ function renderVacHoursTracker(){
     +'<th style="padding:6px 10px;font-size:11px;color:var(--text-muted);text-align:center">Total Hours</th>'
     +'<th style="padding:6px 10px;font-size:11px;color:var(--text-muted);text-align:center">Used</th>'
     +'<th style="padding:6px 10px;font-size:11px;color:var(--text-muted);text-align:center">Remaining</th>'
-    +'<th style="padding:6px 10px;font-size:11px;color:var(--text-muted);text-align:center">Floating Holidays</th></tr></thead><tbody>';
+    +'<th style="padding:6px 10px;font-size:11px;color:var(--text-muted);text-align:center">'+(companySettings.floatingHolidaysLabel||'Floating Holidays')+'</th></tr></thead><tbody>';
   if(direct.length){h+='<tr><td colspan="5" class="tbl-section" style="color:#1d4ed8;background:#dbeafe">Direct</td></tr>';direct.forEach(r=>h+=renderRow(r))}
   if(contract.length){h+='<tr><td colspan="5" class="tbl-section" style="color:#a16207;background:#fef9c3">Contractor</td></tr>';contract.forEach(r=>h+=renderRow(r))}
   el.innerHTML=h+'</tbody></table>';

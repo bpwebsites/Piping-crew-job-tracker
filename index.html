@@ -25,10 +25,11 @@
     <div class="htitle" id="branchTitle">Crew Job Tracker</div>
     <div class="branch-tabs hidden" id="branchTabsEl">
       <button class="branch-tab" id="btMaster" onclick="setBranch('master')">&#9733; Master</button>
-      <button class="branch-tab active" id="btPiping" onclick="setBranch('piping')">Piping</button>
-      <button class="branch-tab" id="btCivil" onclick="setBranch('civil')">Civil</button>
-      <button class="branch-tab" id="btIe" onclick="setBranch('ie')">I&amp;E</button>
+      <button class="branch-tab branch-specific active" id="btPiping" onclick="setBranch('piping')">Piping</button>
+      <button class="branch-tab branch-specific" id="btCivil" onclick="setBranch('civil')">Civil</button>
+      <button class="branch-tab branch-specific" id="btIe" onclick="setBranch('ie')">I&amp;E</button>
       <button class="branch-tab" id="btTimeOff" onclick="setBranch('timeoff')">Vacation/Overtime</button>
+      <button class="branch-tab admin-tab" id="btAdmin" onclick="setBranch('admin')" style="display:none">&#9881; Admin</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
@@ -165,6 +166,100 @@
       <div class="li"><div class="ld" style="background:rgba(185,28,28,.25);border:1px solid rgba(185,28,28,.4)"></div>Overtime</div>
     </div>
   </div>
+
+  <!-- Admin View -->
+  <div id="adminView" class="hidden">
+    <div id="adminFirstSetupBanner" style="background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--r);padding:12px 16px;margin-bottom:1.2rem;font-size:13px;color:#92400e;display:none">
+      <strong>First time setup</strong> — No admin code is set yet. Set one in the Access Codes section below to secure the admin panel.
+    </div>
+
+    <div class="card">
+      <div class="slbl">Branches</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Rename, recolor, add, or delete branches to match the company's departments. Deleting a branch permanently removes all its jobs and crew.</p>
+      <div id="adminBranchSection"></div>
+    </div>
+
+    <div class="card">
+      <div class="slbl">People Types</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Rename "Direct" and "Contractor" to whatever the company calls them (e.g. "Staff" / "Agency", "FTE" / "Temp").</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:500px">
+        <div class="fg"><label>Type 1 — full-time / benefits</label><input id="adminTypeDirect" class="admin-inp" placeholder="Direct" maxlength="30"/></div>
+        <div class="fg"><label>Type 2 — external / limited</label><input id="adminTypeContractor" class="admin-inp" placeholder="Contractor" maxlength="30"/></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn-ghost" onclick="adminSaveTypes()">Save changes</button></div>
+    </div>
+
+    <div class="card">
+      <div class="slbl">Calendar &amp; Holidays</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:500px">
+        <div class="fg">
+          <label>Work week</label>
+          <select id="adminWorkWeek" class="form-sel">
+            <option value="mon-fri">Mon–Fri (5 days)</option>
+            <option value="mon-thu">Mon–Thu (4 days, Fridays off)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Floating holidays / personal days</label>
+          <select id="adminFloatEnabled" class="form-sel" onchange="(function(v){const e=$('adminFloatExtra');if(e)e.style.display=v==='yes'?'':'none'})(this.value)">
+            <option value="yes">Enabled</option>
+            <option value="no">Disabled (company doesn't offer them)</option>
+          </select>
+        </div>
+      </div>
+      <div id="adminFloatExtra" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:500px;margin-top:14px">
+        <div class="fg">
+          <label>What to call them</label>
+          <input id="adminFloatLabel" class="admin-inp" placeholder="Floating Holiday" maxlength="30"/>
+        </div>
+        <div class="fg">
+          <label>How many per Type 1 employee</label>
+          <input id="adminFloatingCount" type="number" min="0" max="20" class="admin-inp" placeholder="3"/>
+        </div>
+      </div>
+      <div style="margin-top:14px"><button class="btn-ghost" onclick="adminSaveCalendar()">Save changes</button></div>
+    </div>
+
+    <div class="card">
+      <div class="slbl"><span id="adminHveGroupLabel">HVE</span> Settings</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">HVE is a special permanent row for estimation/engineering hours. Rename or hide it if the company doesn't use it.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:500px">
+        <div class="fg">
+          <label>Show HVE row</label>
+          <select id="adminHveEnabled" class="form-sel">
+            <option value="yes">Yes — show it</option>
+            <option value="no">No — hide it</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>What to call it</label>
+          <input id="adminHveLabel" class="admin-inp" placeholder="HVE" maxlength="20"/>
+        </div>
+      </div>
+      <div style="margin-top:14px"><button class="btn-ghost" onclick="adminSaveHve()">Save changes</button></div>
+    </div>
+
+    <div class="card">
+      <div class="slbl">Access Codes</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Give the lead code to the client's manager. Keep the admin code private — it controls all settings.</p>
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:500px">
+        <div>
+          <div class="admin-code-lbl">Lead code — give to client manager</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <input type="password" id="adminNewLeadCode" class="admin-inp" placeholder="New lead code (4+ chars)" maxlength="60" style="flex:1" autocomplete="new-password" onkeydown="if(event.key==='Enter')adminChangeLeadCode()"/>
+            <button class="btn" onclick="adminChangeLeadCode()">Update</button>
+          </div>
+        </div>
+        <div>
+          <div class="admin-code-lbl">Admin code — your private code only</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+            <input type="password" id="adminNewAdminCode" class="admin-inp" placeholder="New admin code (6+ chars)" maxlength="60" style="flex:1" autocomplete="new-password" onkeydown="if(event.key==='Enter')adminChangeAdminCode()"/>
+            <button class="btn" onclick="adminChangeAdminCode()">Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- LEAD ACCESS MODAL -->
@@ -233,6 +328,20 @@
 </div>
 <div id="toast"></div>
 <div id="dg"></div>
+
+<!-- ADMIN ACCESS MODAL -->
+<div id="adminAccessModal" class="hidden">
+  <div style="background:#fff;border-radius:var(--rl);padding:1.5rem;width:320px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="font-family:var(--mono);font-size:16px;font-weight:600;color:var(--blue);margin-bottom:6px">Admin Access</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Enter your admin code to manage company settings.</div>
+    <input type="password" id="adminCodeInput" placeholder="Admin code" autocomplete="off"
+      style="font-family:var(--font);font-size:14px;color:var(--text);background:var(--bg);border:1px solid rgba(0,0,0,.15);border-radius:var(--r);padding:9px 12px;height:40px;width:100%;outline:none;box-sizing:border-box;display:block;margin-bottom:8px"
+      onkeydown="if(event.key==='Enter')submitAdminCode()"/>
+    <button onclick="submitAdminCode()" style="width:100%;height:40px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">Submit</button>
+    <div id="adminCodeErr" style="font-size:12px;color:#dc2626;margin-top:8px;min-height:16px"></div>
+    <div style="text-align:right;margin-top:6px"><a onclick="closeAdminModal()" style="font-size:12px;color:var(--text-muted);cursor:pointer">Cancel</a></div>
+  </div>
+</div>
 
 <!-- SCRIPT -->
 </body>

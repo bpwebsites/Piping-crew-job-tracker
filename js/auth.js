@@ -225,3 +225,45 @@ async function rejectUser(userId,approvalId){
     }catch(e){toast('Rejection failed.','err')}
   });
 }
+
+/* ═══════════════════════════════════════════════
+   ADMIN ACCESS  (Brady only — separate from lead code)
+   Accessed via ?admin=true in URL.
+   Code stored in app_settings.admin_code.
+   If no code is set, grants first-time access to set one.
+   ═══════════════════════════════════════════════ */
+let _adminAttempts=[];
+
+function openAdminModal(){
+  if(isAdminMode){setBranch('admin');return}
+  $('adminAccessModal').classList.remove('hidden');
+  $('adminCodeInput').value='';$('adminCodeErr').textContent='';
+  setTimeout(()=>$('adminCodeInput').focus(),50);
+}
+function closeAdminModal(){$('adminAccessModal').classList.add('hidden')}
+
+async function submitAdminCode(){
+  const now=Date.now();
+  _adminAttempts=_adminAttempts.filter(t=>now-t<15*60*1000);
+  if(_adminAttempts.length>=5){$('adminCodeErr').textContent='Too many attempts. Try again later.';return}
+  const code=$('adminCodeInput').value.trim();
+  if(!code){$('adminCodeErr').textContent='Enter the admin code.';return}
+  if(!_sb){$('adminCodeErr').textContent='Connection unavailable.';return}
+  $('adminCodeErr').textContent='Checking…';
+  try{
+    const{data,error}=await _sb.from('app_settings').select('value').eq('key','admin_code').single();
+    if(error||!data){
+      // No admin code set yet — grant first-time setup access
+      _adminCodeMissing=true;
+      closeAdminModal();
+      isAdminMode=true;
+      setBranch('admin');
+      return;
+    }
+    if(code!==data.value){_adminAttempts.push(now);$('adminCodeErr').textContent='Incorrect code.';return}
+    _adminCodeMissing=false;
+    closeAdminModal();
+    isAdminMode=true;
+    setBranch('admin');
+  }catch(e){$('adminCodeErr').textContent='Connection error. Try again.'}
+}

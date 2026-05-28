@@ -310,44 +310,52 @@ function renderMaster(){
   function fmt(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
   function branchJobDates(bid){
     const map={};
-    (branchData[bid].people||[]).filter(p=>p.id!==0).forEach(p=>(branchData[bid].queues[p.id]||[]).forEach(j=>{
+    (branchData[bid]?.people||[]).filter(p=>p.id!==0).forEach(p=>(branchData[bid].queues[p.id]||[]).forEach(j=>{
       const ed=tempDays[Math.min((j.di||0)+daysFor(j.hours,j.hrsPerWeek)-1,tempDays.length-1)];if(!ed)return;
       const k=normJob(j.name);if(!map[k]||ed>map[k].date)map[k]={date:ed,origName:j.name,ifaDate:j.ifaDate||null};
     }));return map;
   }
-  const pipingMap=branchJobDates('piping'),civilMap=branchJobDates('civil'),ieMap=branchJobDates('ie');
-  const allNames=new Set([...Object.keys(pipingMap),...Object.keys(civilMap),...Object.keys(ieMap)]);
-  if(!allNames.size){$('masterContent').innerHTML='<div style="text-align:center;padding:3rem;color:var(--text-muted);font-size:14px">No jobs found. Add jobs in the Piping, Civil, or I&E tabs.</div>';return}
+  // Build maps for every current branch dynamically
+  const branchMaps={};
+  BRANCHES.forEach(b=>{branchMaps[b.id]=branchJobDates(b.id)});
+  const allNames=new Set(BRANCHES.flatMap(b=>Object.keys(branchMaps[b.id])));
+  if(!allNames.size){
+    const names=BRANCHES.map(b=>b.label).join(', ');
+    $('masterContent').innerHTML='<div style="text-align:center;padding:3rem;color:var(--text-muted);font-size:14px">No jobs found. Add jobs in the '+names+' tabs.</div>';return;
+  }
 
-  const bC=BRANCH_COLORS,rows=[],cutoff=new Date(today0());cutoff.setDate(cutoff.getDate()-30);
+  const rows=[],cutoff=new Date(today0());cutoff.setDate(cutoff.getDate()-30);
   allNames.forEach(name=>{
-    const p=pipingMap[name],cv=civilMap[name],ie=ieMap[name];
-    const dates=[p,cv,ie].filter(Boolean).map(x=>x.date);if(!dates.length)return;
+    const byBranch={};BRANCHES.forEach(b=>{byBranch[b.id]=branchMaps[b.id][name]||null});
+    const dates=Object.values(byBranch).filter(Boolean).map(x=>x.date);if(!dates.length)return;
     const latest=dates.reduce((a,b)=>b>a?b:a);if(latest<cutoff)return;
-    rows.push({norm:name,origName:(p||cv||ie).origName,latest,p:p||null,cv:cv||null,ie:ie||null,done:completedJobs.has(name)});
+    const first=Object.values(byBranch).find(Boolean);
+    rows.push({norm:name,origName:first.origName,latest,byBranch,done:completedJobs.has(name)});
   });
   rows.sort((a,b)=>a.latest-b.latest);
   const activeRows=rows.filter(r=>!r.done),doneRows=rows.filter(r=>r.done);
 
   function cellHtml(entry,bid,r){
     if(!entry)return'<td><span class="master-none">not assigned</span></td>';
-    const bc=bC[bid],isLatest=entry.date.getTime()===r.latest.getTime();
+    const bc=getBranchColor(bid),isLatest=entry.date.getTime()===r.latest.getTime();
     return'<td><div style="display:inline-block;background:'+bc.bg+';border:1px solid '+bc.bdr+';color:'+bc.txt+';font-size:13px;font-weight:'+(isLatest?800:600)+';padding:4px 10px;border-radius:6px" class="mono">'+fmt(entry.date)+'</div>'
       +(entry.ifaDate?'<div style="font-size:11px;color:var(--text-muted);margin-top:3px">IFA Req: '+fmtShort(fromIso(entry.ifaDate))+'</div>':'')+'</td>';
   }
 
+  const colspan=BRANCHES.length+3;
   let html='<div class="card" style="padding:0;overflow:hidden"><table class="master-table"><thead><tr>'
-    +'<th>Job Name</th><th>Latest Finish</th><th style="color:#1d4ed8">Piping</th><th style="color:#15803d">Civil</th><th style="color:#a16207">I&amp;E</th>'
+    +'<th>Job Name</th><th>Latest Finish</th>'
+    +BRANCHES.map(b=>{const bc=getBranchColor(b.id);return'<th style="color:'+bc.txt+'">'+sanitize(b.label)+'</th>'}).join('')
     +(currentRole==='lead'?'<th></th>':'')+'</tr></thead><tbody>';
   activeRows.forEach(r=>{
     const isSel=masterFocusJob===r.norm,esc=r.norm.replace(/'/g,"\\'");
     html+='<tr onclick="setMasterFocusJob(\''+esc+'\')" style="cursor:pointer;'+(isSel?'background:#eef4ff;box-shadow:inset 3px 0 0 var(--blue);':'')+'">'
       +'<td><div class="master-job-name" style="'+(isSel?'color:var(--blue);font-weight:700;':'')+'">'+sanitize(r.origName)+'</div></td>'
       +'<td><div style="display:inline-block;background:#004f9f;border:1px solid #003d7a;color:#fff;font-size:13px;font-weight:700;padding:4px 10px;border-radius:6px" class="mono">'+fmt(r.latest)+'</div></td>'
-      +cellHtml(r.p,'piping',r)+cellHtml(r.cv,'civil',r)+cellHtml(r.ie,'ie',r)
+      +BRANCHES.map(b=>cellHtml(r.byBranch[b.id],b.id,r)).join('')
       +(currentRole==='lead'?'<td style="text-align:center"><button onclick="completeJob(\''+esc+'\',event)" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">Completed</button></td>':'')+'</tr>';
   });
-  if(!activeRows.length)html+='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:13px">All jobs completed or older than 30 days.</td></tr>';
+  if(!activeRows.length)html+='<tr><td colspan="'+colspan+'" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:13px">All jobs completed or older than 30 days.</td></tr>';
   html+='</tbody></table></div>';
   if(doneRows.length){
     html+='<div style="margin-top:12px"><div onclick="$(\'completedList\').classList.toggle(\'hidden\')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 0"><span>&#9660;</span> Completed ('+doneRows.length+')</div>'
@@ -356,7 +364,7 @@ function renderMaster(){
       const esc=r.norm.replace(/'/g,"\\'");
       html+='<tr style="background:#f9fdf9"><td><div class="master-job-name" style="text-decoration:line-through;color:var(--text-muted)">'+sanitize(r.origName)+'</div></td>'
         +'<td><div style="display:inline-block;background:#86efac;border:1px solid #4ade80;color:#15803d;font-size:13px;font-weight:700;padding:4px 10px;border-radius:6px" class="mono">'+fmt(r.latest)+'</div></td>'
-        +cellHtml(r.p,'piping',r)+cellHtml(r.cv,'civil',r)+cellHtml(r.ie,'ie',r)
+        +BRANCHES.map(b=>cellHtml(r.byBranch[b.id],b.id,r)).join('')
         +(currentRole==='lead'?'<td style="text-align:center"><button onclick="uncompleteJob(\''+esc+'\')" class="btn-warn" style="white-space:nowrap">Undo</button></td>':'')+'</tr>';
     });
     html+='</tbody></table></div></div></div>';
