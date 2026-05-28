@@ -11,13 +11,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* layout */
 body{display:flex}
-#sidebar{width:64px;min-width:64px;background:#002a5c;display:flex;flex-direction:column;align-items:center;position:fixed;top:0;left:0;bottom:0;z-index:300}
-main{margin-left:64px;flex:1;max-width:calc(1900px - 64px);padding:1.5rem 2rem}
+#sidebar{width:82px;min-width:82px;background:#002a5c;display:flex;flex-direction:column;align-items:center;position:fixed;top:0;left:0;bottom:0;z-index:300}
+main{margin-left:82px;flex:1;max-width:calc(1900px - 82px);padding:1.5rem 2rem}
 
 /* sidebar logo */
-.sb-logo{padding:16px 0 12px;border-bottom:1px solid rgba(255,255,255,.08);width:100%;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:default}
+.sb-logo{padding:16px 0 10px;border-bottom:1px solid rgba(255,255,255,.08);width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;cursor:default}
 .logo{font-family:var(--mono);font-size:13px;font-weight:500;color:#fff;letter-spacing:.08em;border:1.5px solid rgba(255,255,255,.3);padding:3px 6px;border-radius:4px}
-.sb-company-name{position:fixed;top:14px;left:76px;background:#004f9f;color:#fff;font-size:11px;font-weight:700;font-family:var(--font);text-transform:uppercase;letter-spacing:.07em;padding:5px 12px;border-radius:6px;z-index:200;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.sb-company-name{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:10px;font-weight:700;font-family:var(--font);text-transform:uppercase;letter-spacing:.06em;padding:4px 7px;border-radius:5px;width:68px;text-align:center;word-break:break-word;line-height:1.35}
 
 /* nav */
 .branch-tabs{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0;flex:1;width:100%}
@@ -25,14 +25,14 @@ main{margin-left:64px;flex:1;max-width:calc(1900px - 64px);padding:1.5rem 2rem}
 .branch-tab:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.9)}
 .branch-tab.active{background:rgba(255,255,255,.18);color:#fff}
 /* tooltip */
-.branch-tab::after{content:attr(data-tooltip);position:absolute;left:54px;top:50%;transform:translateY(-50%);background:#1e293b;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);letter-spacing:0;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:400;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.branch-tab::after{content:attr(data-tooltip);position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#1e293b;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);letter-spacing:0;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:400;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .branch-tab:hover::after{opacity:1}
 
 /* sidebar bottom */
 .sb-bottom{padding:10px 0 18px;border-top:1px solid rgba(255,255,255,.08);width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
 .sb-icon-btn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:rgba(255,255,255,.4);border-radius:8px;cursor:pointer;font-size:16px;transition:background .12s,color .12s;position:relative}
 .sb-icon-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.9)}
-.sb-icon-btn::after{content:attr(data-tooltip);position:absolute;left:54px;top:50%;transform:translateY(-50%);background:#1e293b;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:400;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.sb-icon-btn::after{content:attr(data-tooltip);position:absolute;left:52px;top:50%;transform:translateY(-50%);background:#1e293b;color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:400;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .sb-icon-btn:hover::after{opacity:1}
 .hright{font-size:9px;color:rgba(255,255,255,.22);font-family:var(--mono);text-align:center;padding:6px 4px;line-height:1.4}
 .user-name{display:none}
