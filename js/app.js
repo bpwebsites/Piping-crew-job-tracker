@@ -31,7 +31,8 @@ function setBranch(bid){
 }
 
 function initBranchTabs(){
-  document.querySelectorAll('.branch-specific').forEach(el=>el.remove());
+  // Remove both class-marked and id-prefixed branch buttons to avoid stale duplicates
+  document.querySelectorAll('.branch-specific,[id^="bt_"]').forEach(el=>el.remove());
   const masterBtn=$('btMaster');if(!masterBtn)return;
   let ref=masterBtn;
   BRANCHES.forEach(b=>{
