@@ -107,7 +107,7 @@ function renderAdmin(){
         <tr>
           <td><span class="admin-branch-pill" style="background:${bc.bg};color:${bc.txt};border:1px solid ${bc.bdr}">${b.id.toUpperCase()}</span></td>
           <td><input class="admin-inp" id="adminBL_${b.id}" value="${sanitize(b.label)}" maxlength="30" onkeydown="if(event.key==='Enter')adminSaveBranch('${b.id}')"/></td>
-          <td><select class="form-sel" id="adminBC_${b.id}">${Object.keys(BRANCH_COLOR_PALETTE).map(c=>`<option value="${c}"${b.color===c?' selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</select></td>
+          <td><select class="form-sel" id="adminBC_${b.id}">${Object.keys(BRANCH_COLOR_PALETTE).filter(c=>c!=='amber').map(c=>`<option value="${c}"${b.color===c?' selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</select></td>
           <td style="display:flex;gap:6px;align-items:center">
             <button class="btn-ghost admin-save-btn" onclick="adminSaveBranch('${b.id}')">Save</button>
             ${BRANCHES.length>1?`<button class="btn-warn" onclick="adminDeleteBranch('${b.id}')">Delete</button>`:''}
@@ -119,7 +119,7 @@ function renderAdmin(){
       <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Add branch</div>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <div class="fg" style="flex:1;min-width:120px"><label>Name</label><input class="admin-inp" id="adminNewBranchName" placeholder="e.g. Electrical" maxlength="30" onkeydown="if(event.key==='Enter')adminAddBranch()"/></div>
-        <div class="fg"><label>Color</label><select class="form-sel" id="adminNewBranchColor">${Object.keys(BRANCH_COLOR_PALETTE).map(c=>`<option value="${c}">${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</select></div>
+        <div class="fg"><label>Color</label><select class="form-sel" id="adminNewBranchColor">${Object.keys(BRANCH_COLOR_PALETTE).filter(c=>c!=='amber').map(c=>`<option value="${c}">${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</select></div>
         <button class="btn" style="margin-bottom:0" onclick="adminAddBranch()">+ Add</button>
       </div>
     </div>`;
