@@ -23,13 +23,40 @@ const PENDING_COLOR={bg:'#e5e7eb',txt:'#6b7280',bdr:'#9ca3af'};
 
 /* ═══════════════════════════════════════════════
    BRANCHES
+   BRANCHES is mutable — admin panel can add/remove.
+   Each entry: {id, label, color} where color is a
+   key into BRANCH_COLOR_PALETTE.
+   BRANCH_COLORS is rebuilt via rebuildBranchColors()
+   whenever branches change.
    ═══════════════════════════════════════════════ */
-const BRANCHES=[{id:'piping',label:'Piping'},{id:'civil',label:'Civil'},{id:'ie',label:'I&E'}];
+const BRANCHES=[
+  {id:'piping',label:'Piping',color:'blue'},
+  {id:'civil',label:'Civil',color:'green'},
+  {id:'ie',label:'I&E',color:'amber'},
+];
+const BRANCH_COLOR_PALETTE={
+  blue:  {bg:'#dbeafe',txt:'#1d4ed8',bdr:'#93c5fd'},
+  green: {bg:'#dcfce7',txt:'#15803d',bdr:'#86efac'},
+  amber: {bg:'#fef9c3',txt:'#a16207',bdr:'#fde047'},
+  red:   {bg:'#fee2e2',txt:'#991b1b',bdr:'#fca5a5'},
+  purple:{bg:'#f3e8ff',txt:'#7e22ce',bdr:'#d8b4fe'},
+  teal:  {bg:'#ccfbf1',txt:'#0f766e',bdr:'#5eead4'},
+  orange:{bg:'#ffedd5',txt:'#9a3412',bdr:'#fdba74'},
+  slate: {bg:'#f1f5f9',txt:'#475569',bdr:'#cbd5e1'},
+};
 const BRANCH_COLORS={
   piping:{bg:'#dbeafe',txt:'#1d4ed8',bdr:'#93c5fd'},
-  civil:{bg:'#dcfce7',txt:'#15803d',bdr:'#86efac'},
-  ie:{bg:'#fef9c3',txt:'#a16207',bdr:'#fde047'},
+  civil: {bg:'#dcfce7',txt:'#15803d',bdr:'#86efac'},
+  ie:    {bg:'#fef9c3',txt:'#a16207',bdr:'#fde047'},
 };
+function getBranchColor(bid){
+  const b=BRANCHES.find(br=>br.id===bid);
+  return BRANCH_COLOR_PALETTE[b?.color||'blue']||BRANCH_COLOR_PALETTE.blue;
+}
+function rebuildBranchColors(){
+  Object.keys(BRANCH_COLORS).forEach(k=>delete BRANCH_COLORS[k]);
+  BRANCHES.forEach(b=>{BRANCH_COLORS[b.id]=getBranchColor(b.id)});
+}
 
 /* ═══════════════════════════════════════════════
    SUPABASE CONFIG
@@ -59,3 +86,30 @@ const AUTH_MODE=(()=>{
   if(window.CREWTRACK_USER)return'external';
   return'local';
 })();
+
+/* ═══════════════════════════════════════════════
+   ADMIN MODE
+   Only available when URL contains ?admin=true.
+   Uses a separate code from the lead code — stored
+   in app_settings.admin_code (Brady's eyes only).
+   ═══════════════════════════════════════════════ */
+const _adminAllowed=new URLSearchParams(window.location.search).has('admin');
+let isAdminMode=false;
+let _adminCodeMissing=false;
+
+/* ═══════════════════════════════════════════════
+   COMPANY SETTINGS
+   Loaded from app_settings on init. Defaults below
+   are used when no saved settings exist yet.
+   ═══════════════════════════════════════════════ */
+let companySettings={
+  companyName:'',
+  typeLabels:{direct:'Direct',contractor:'Contractor'},
+  floatingHolidays:3,
+  floatingHolidaysEnabled:true,
+  floatingHolidaysLabel:'Floating Holiday',
+  workWeek:'mon-fri',
+  hveEnabled:true,
+  hveLabel:'HVE',
+  defaultVacHours:80,
+};

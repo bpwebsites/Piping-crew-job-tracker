@@ -98,3 +98,49 @@ function auditLog(action,details){
   // fire-and-forget — no await, no error surfaced to user
   _sb.from('audit_log').insert(entry).then(()=>{}).catch(()=>{});
 }
+
+/* ═══════════════════════════════════════════════
+   COMPANY SETTINGS — load / save
+   Reads/writes app_settings table (key-value rows).
+   Called during init; writes happen from admin panel.
+   ═══════════════════════════════════════════════ */
+async function loadCompanySettings(){
+  if(!_sb)return;
+  try{
+    const keys=['company_name','branches_config','type_labels','floating_holidays','floating_holidays_enabled','floating_holidays_label','work_week','hve_enabled','hve_label','default_vac_hours'];
+    const{data}=await _sb.from('app_settings').select('key,value').in('key',keys);
+    if(!data)return;
+    data.forEach(row=>{
+      try{
+        if(row.key==='company_name')companySettings.companyName=row.value||'';
+        else if(row.key==='default_vac_hours')companySettings.defaultVacHours=Number(row.value)||80;
+        else if(row.key==='branches_config'){
+          const saved=JSON.parse(row.value);
+          if(saved&&saved.length){
+            BRANCHES.length=0;
+            saved.forEach(b=>{
+              BRANCHES.push({id:b.id,label:b.label,color:b.color||'blue'});
+              if(!branchData[b.id])branchData[b.id]={people:[],queues:{},vacations:{},nid:1,npid:1};
+            });
+          }
+        }
+        else if(row.key==='type_labels')companySettings.typeLabels=JSON.parse(row.value);
+        else if(row.key==='floating_holidays')companySettings.floatingHolidays=Number(row.value)||3;
+        else if(row.key==='floating_holidays_enabled')companySettings.floatingHolidaysEnabled=row.value!=='false';
+        else if(row.key==='floating_holidays_label')companySettings.floatingHolidaysLabel=row.value||'Floating Holiday';
+        else if(row.key==='work_week')companySettings.workWeek=row.value||'mon-fri';
+        else if(row.key==='hve_enabled')companySettings.hveEnabled=row.value!=='false';
+        else if(row.key==='hve_label')companySettings.hveLabel=row.value||'HVE';
+      }catch(e){}
+    });
+  }catch(e){}
+}
+
+async function saveCompanySetting(key,value){
+  if(!_sb)return false;
+  try{
+    const strVal=typeof value==='object'?JSON.stringify(value):String(value);
+    const{error}=await _sb.from('app_settings').upsert({key,value:strVal},{onConflict:'key'});
+    return!error;
+  }catch(e){return false}
+}
