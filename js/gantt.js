@@ -311,8 +311,13 @@ function renderMaster(){
   function branchJobDates(bid){
     const map={};
     (branchData[bid]?.people||[]).filter(p=>p.id!==0).forEach(p=>(branchData[bid].queues[p.id]||[]).forEach(j=>{
-      const ed=tempDays[Math.min((j.di||0)+daysFor(j.hours,j.hrsPerWeek)-1,tempDays.length-1)];if(!ed)return;
-      const k=normJob(j.name);if(!map[k]||ed>map[k].date)map[k]={date:ed,origName:j.name,ifaDate:j.ifaDate||null};
+      const len=daysFor(j.hours,j.hrsPerWeek);
+      const ed=tempDays[Math.min((j.di||0)+len-1,tempDays.length-1)];if(!ed)return;
+      const k=normJob(j.name);
+      let pct=0;
+      if(todayDi>=(j.di||0)+len)pct=100;
+      else if(todayDi>(j.di||0))pct=Math.min(100,Math.round(((todayDi-(j.di||0))/len)*100));
+      if(!map[k]||ed>map[k].date)map[k]={date:ed,origName:j.name,ifaDate:j.ifaDate||null,pct};
     }));return map;
   }
   // Build maps for every current branch dynamically
@@ -338,8 +343,15 @@ function renderMaster(){
   function cellHtml(entry,bid,r){
     if(!entry)return'<td><span class="master-none">not assigned</span></td>';
     const bc=getBranchColor(bid),isLatest=entry.date.getTime()===r.latest.getTime();
-    return'<td><div style="display:inline-block;background:'+bc.bg+';border:1px solid '+bc.bdr+';color:'+bc.txt+';font-size:13px;font-weight:'+(isLatest?800:600)+';padding:4px 10px;border-radius:6px" class="mono">'+fmt(entry.date)+'</div>'
-      +(entry.ifaDate?'<div style="font-size:11px;color:var(--text-muted);margin-top:3px">IFA Req: '+fmtShort(fromIso(entry.ifaDate))+'</div>':'')+'</td>';
+    const pct=entry.pct||0;
+    const pctColor=pct===100?'#15803d':pct>0?'#004f9f':'#9ca3af';
+    return'<td>'
+      +'<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">'
+      +'<div style="display:inline-block;background:'+bc.bg+';border:1px solid '+bc.bdr+';color:'+bc.txt+';font-size:13px;font-weight:'+(isLatest?800:600)+';padding:4px 10px;border-radius:6px" class="mono">'+fmt(entry.date)+'</div>'
+      +'<span style="font-size:12px;font-weight:700;color:'+pctColor+';font-family:var(--mono)">'+pct+'%</span>'
+      +'</div>'
+      +(entry.ifaDate?'<div style="font-size:11px;color:var(--text-muted);margin-top:3px">IFA Req: '+fmtShort(fromIso(entry.ifaDate))+'</div>':'')
+      +'</td>';
   }
 
   const colspan=BRANCHES.length+3;
