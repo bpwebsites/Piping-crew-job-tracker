@@ -56,7 +56,7 @@ async function loadDataAsync(){
           const q2={},v2={};
           Object.keys(bd.queues||{}).forEach(k=>q2[Number(k)]=(bd.queues||{})[k]);
           Object.keys(bd.vacations||{}).forEach(k=>v2[Number(k)]=(bd.vacations||{})[k]);
-          branchData[row.branch_id]={people:bd.people||[],queues:q2,vacations:v2,nid:bd.nid||1,npid:bd.npid||1};
+          branchData[row.branch_id]={people:bd.people||[],queues:q2,vacations:v2,weatherHolds:bd.weatherHolds||{},nid:bd.nid||1,npid:bd.npid||1};
         });
         if(anyBranch){loadBranch(activeBranch);_lsSaveBranches()}
       }
@@ -120,7 +120,7 @@ async function loadCompanySettings(){
             BRANCHES.length=0;
             saved.forEach(b=>{
               BRANCHES.push({id:b.id,label:b.label,color:b.color||'blue'});
-              if(!branchData[b.id])branchData[b.id]={people:[],queues:{},vacations:{},nid:1,npid:1};
+              if(!branchData[b.id])branchData[b.id]={people:[],queues:{},vacations:{},weatherHolds:{},nid:1,npid:1};
             });
           }
         }

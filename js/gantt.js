@@ -64,13 +64,23 @@ function computeWeekSpans(yearDays){
   yearDays.forEach((d,li)=>{d.getDay()===1||li===0?wk.push({s:li,n:1,mon:d}):wk.length&&wk[wk.length-1].n++});
   return wk;
 }
-function buildGanttHeader(yearDays,lTDi,cw,label){
+function buildGanttHeader(yearDays,lTDi,cw,label,wh,yOff){
   const ms=computeMonthSpans(yearDays),wk=computeWeekSpans(yearDays);
   const DL=['M','T','W','T','F'];
   let h='<div class="g-head"><div class="name-hd"><div class="name-hd-inner">'+label+'</div></div><div class="head-cols">';
   h+='<div class="months-row">'+ms.map(m=>'<div class="month-cell'+(lTDi>=m.s&&lTDi<m.s+m.n?' cur':'')+'" style="width:'+(m.n*cw)+'px;min-width:'+(m.n*cw)+'px">'+m.lbl+'</div>').join('')+'</div>';
   h+='<div class="weeks-row">'+wk.map(w=>{const fri=yearDays[Math.min(w.s+w.n-1,yearDays.length-1)];return'<div class="week-lbl'+(lTDi>=w.s&&lTDi<w.s+w.n?' cur':'')+'" style="width:'+(w.n*cw)+'px;min-width:'+(w.n*cw)+'px">'+w.mon.getDate()+'-'+fri.getDate()+'</div>'}).join('')+'</div>';
-  h+='<div class="days-row">'+yearDays.map((d,li)=>'<div class="day-cell'+(li===lTDi?' cur':'')+(d.getDay()===5?' fri-end':'')+'" style="width:'+cw+'px;min-width:'+cw+'px">'+DL[d.getDay()-1]+'</div>').join('')+'</div>';
+  h+='<div class="days-row">'+yearDays.map((d,li)=>{
+    const dateStr=iso(d),whHrs=wh&&wh[dateStr]?wh[dateStr]:0,isW=whHrs>0;
+    const canEdit=!!wh&&currentRole==='lead';
+    const style='width:'+cw+'px;min-width:'+cw+'px'+(isW?';background:rgba(92,124,200,.22);color:#3b5bdb':'')+(canEdit?';cursor:pointer':'');
+    const title=isW?whHrs+'h weather hold'+(canEdit?' — click to edit':''):'';
+    return'<div class="day-cell'+(li===lTDi?' cur':'')+(d.getDay()===5?' fri-end':'')+'"'
+      +(canEdit?' onclick="setWeatherHold('+(yOff+li)+')"':'')
+      +' style="'+style+'"'+(title?' title="'+title+'"':'')+'>'
+      +(isW?'<span style="font-size:7px;font-weight:800;line-height:1">'+whHrs+'h</span>':DL[d.getDay()-1])
+      +'</div>';
+  }).join('')+'</div>';
   return h+'</div></div></div>';
 }
 
@@ -161,7 +171,7 @@ function buildPill(j,pid,jt,grpH,cw,yOff,yEnd,pc,interactive){
   let h='<div class="g-pill"'+(interactive?' data-id="'+j.id+'" data-pid="'+pid+'" draggable="true" ondragstart="pillStart(event)" ondragend="pillEnd(event)"':'')
     +' style="left:'+lx+'px;top:'+y+'px;width:'+pw+'px;height:'+PH+'px;background:'+pc.bg+';border-left:3px solid '+pc.bdr+';border-right:3px solid '+pc.bdr+';border-top:1px solid rgba(0,0,0,.07);border-bottom:1px solid rgba(0,0,0,.07);'+(isGrp?'outline:2px dashed '+pc.bdr+';outline-offset:-2px;':'')+(interactive?'':'cursor:default;')+'">'
     +'<div style="display:flex;flex-direction:column;min-width:0;flex:1;overflow:hidden;gap:1px">'
-    +'<span style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+pc.txt+'">'+(isPend?'⏳ ':'')+sanitize(j.name)+(isGrp?' (split)':'')+'</span>'
+    +'<span style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+pc.txt+'"'+(j.notes?' title="'+sanitize(j.notes)+'"':'')+' >'+(isPend?'⏳ ':'')+sanitize(j.name)+(isGrp?' (split)':'')+(j.notes?' 📝':'')+'</span>'
     +'<span style="font-size:10px;opacity:.9;white-space:nowrap;color:'+pc.txt+'">'+dispH+'h · '+(j.hrsPerWeek||40)+'h/wk'+(isPend?' · Pending':'')+'</span>'
     +(ifaReq||ifaEnd?'<span style="font-size:10px;font-weight:600;white-space:nowrap;color:'+pc.txt+'">'+(ifaReq||'')+(ifaReq&&ifaEnd?' · ':'')+ifaEnd+'</span>':'')
     +'</div>'
@@ -412,7 +422,7 @@ function renderMasterTimeline(){
   const yOff=days.indexOf(yearDays[0]),yEnd=yOff+yearDays.length-1;
   const lTDi=todayDi>=yOff&&todayDi<yOff+yearDays.length?todayDi-yOff:-1;
 
-  let h=buildGanttHeader(yearDays,lTDi,CW,'Crew member');
+  let h=buildGanttHeader(yearDays,lTDi,CW,'Crew member',null,0);
   let b='<div class="g-body">'+(lTDi>=0?'<div class="today-line" style="left:'+(165+lTDi*CW+CW/2)+'px"></div>':'');
 
   BRANCHES.forEach(br=>{
@@ -485,7 +495,7 @@ function render(){
   const yOff=days.indexOf(yearDays[0]),yEnd=yOff+yearDays.length-1;
   const lTDi=todayDi>=yOff&&todayDi<yOff+yearDays.length?todayDi-yOff:-1;
 
-  let h=buildGanttHeader(yearDays,lTDi,CW,'Crew member');
+  let h=buildGanttHeader(yearDays,lTDi,CW,'Crew member',branchData[activeBranch].weatherHolds||{},yOff);
   let b='<div class="g-body">'+(lTDi>=0?'<div class="today-line" style="left:'+(165+lTDi*CW+CW/2)+'px"></div>':'');
   if(!people.length)b+='<div style="text-align:center;padding:3rem;color:var(--text-muted)">Add a crew member to get started.</div>';
   else people.forEach(p=>{
@@ -526,7 +536,7 @@ function pillStart(e){
   let dragH=job.hours;
   if(job.groupId){const pcs=(queues[pid]||[]).filter(j=>j.groupId===job.groupId);dragH=job._origHours||pcs.reduce((s,j)=>s+j.hours,0)}
   const rect=el.getBoundingClientRect();
-  drag={id,pid,di:job.di||0,hours:dragH,hrsPerWeek:job.hrsPerWeek,ifaDate:job.ifaDate,name:job.name,groupId:job.groupId,pending:!!job.pending,offDi:Math.floor((e.clientX-rect.left)/CW)};
+  drag={id,pid,di:job.di||0,hours:dragH,hrsPerWeek:job.hrsPerWeek,ifaDate:job.ifaDate,name:job.name,groupId:job.groupId,pending:!!job.pending,notes:job.notes||'',offDi:Math.floor((e.clientX-rect.left)/CW)};
   e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(id));
   const c=getColor(pid),g=$('dg');g.textContent=job.name;g.style.background=c.bg;g.style.color=c.txt;g.style.display='block';
   e.dataTransfer.setDragImage(g,40,12);setTimeout(()=>el.classList.add('dragging'),0);
@@ -552,12 +562,12 @@ function laneDrop(e,pid){
     mergeSplitGroup(drag.groupId,drag.pid);
     queues[drag.pid]=(queues[drag.pid]||[]).filter(j=>j.id!==firstId);
     if(!queues[pid])queues[pid]=[];
-    queues[pid].push({id:firstId,name:drag.name,hours:drag.hours,hrsPerWeek:drag.hrsPerWeek,ifaDate:drag.ifaDate,di:sw,pid,pending:drag.pending});
+    queues[pid].push({id:firstId,name:drag.name,hours:drag.hours,hrsPerWeek:drag.hrsPerWeek,ifaDate:drag.ifaDate,di:sw,pid,pending:drag.pending,...(drag.notes?{notes:drag.notes}:{})});
   } else {
     (queues[drag.pid]||[]).forEach(j=>{if(j.id===drag.id){delete j.groupId;delete j._origHours}});
     queues[drag.pid]=(queues[drag.pid]||[]).filter(j=>j.id!==drag.id);
     if(!queues[pid])queues[pid]=[];
-    queues[pid].push({id:drag.id,name:drag.name,hours:drag.hours,hrsPerWeek:drag.hrsPerWeek,ifaDate:drag.ifaDate,di:sw,pid,pending:drag.pending});
+    queues[pid].push({id:drag.id,name:drag.name,hours:drag.hours,hrsPerWeek:drag.hrsPerWeek,ifaDate:drag.ifaDate,di:sw,pid,pending:drag.pending,...(drag.notes?{notes:drag.notes}:{})});
   }
   queues[pid].sort((a,b)=>(a.di||0)-(b.di||0));applySplits(pid);
   if(drag.pid!==pid)toast('Moved "'+drag.name+'" to '+people.find(p=>p.id===pid)?.name+'.','ok');

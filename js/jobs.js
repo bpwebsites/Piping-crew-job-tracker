@@ -87,7 +87,7 @@ function mergeSplitGroup(gid,pid){
   if(!pieces.length)return;
   queues[pid]=(queues[pid]||[]).filter(j=>j.groupId!==gid);
   const p0=pieces[0];
-  queues[pid].push({id:p0.id,name:p0.name,hours:p0._origHours||pieces.reduce((s,j)=>s+j.hours,0),hrsPerWeek:p0.hrsPerWeek,ifaDate:p0.ifaDate,di:p0.di||0,pid,pending:p0.pending});
+  queues[pid].push({id:p0.id,name:p0.name,hours:p0._origHours||pieces.reduce((s,j)=>s+j.hours,0),hrsPerWeek:p0.hrsPerWeek,ifaDate:p0.ifaDate,di:p0.di||0,pid,pending:p0.pending,...(p0.notes?{notes:p0.notes}:{})});
   queues[pid].sort((a,b)=>(a.di||0)-(b.di||0));
 }
 function applySplits(pid){
@@ -113,8 +113,8 @@ function applySplits(pid){
           const gid='job-'+j.id,origH=j.hours,hpw=j.hrsPerWeek,dailyH=hpwToDaily(hpw);
           queues[pid]=(queues[pid]||[]).filter(x=>x.id!==j.id);
           const bD=Math.max(0,vS-jdi),bH=bD>0?Math.round(bD*dailyH):0,aH=origH-bH;
-          if(bD>0&&bH>0)queues[pid].push({id:j.id,name:j.name,hours:bH,hrsPerWeek:hpw,ifaDate:j.ifaDate,di:jdi,groupId:gid,_origHours:origH,pid,pending:j.pending});
-          if(aH>0)queues[pid].push({id:nid++,name:j.name,hours:aH,hrsPerWeek:hpw,ifaDate:j.ifaDate,di:vE+1,groupId:gid,_origHours:origH,pid,pending:j.pending});
+          if(bD>0&&bH>0)queues[pid].push({id:j.id,name:j.name,hours:bH,hrsPerWeek:hpw,ifaDate:j.ifaDate,di:jdi,groupId:gid,_origHours:origH,pid,pending:j.pending,...(j.notes?{notes:j.notes}:{})});
+          if(aH>0)queues[pid].push({id:nid++,name:j.name,hours:aH,hrsPerWeek:hpw,ifaDate:j.ifaDate,di:vE+1,groupId:gid,_origHours:origH,pid,pending:j.pending,...(j.notes?{notes:j.notes}:{})});
           queues[pid].sort((a,b)=>(a.di||0)-(b.di||0));
           changed=true;break;
         }
@@ -141,10 +141,12 @@ function addJob(){
   let sw=minDi();const q=queues[pid]||[];
   if(q.length){const last=q[q.length-1];sw=Math.max(sw,(last.di||0)+daysFor(last.hours,last.hrsPerWeek))}
   if(!queues[pid])queues[pid]=[];
-  queues[pid].push({id:nid++,name,hours:hrs,hrsPerWeek:hpw,ifaDate:ifa,di:sw,pid,pending});
+  const notes=($('jNotes')?.value||'').trim().substring(0,500);
+  queues[pid].push({id:nid++,name,hours:hrs,hrsPerWeek:hpw,ifaDate:ifa,di:sw,pid,pending,...(notes?{notes}:{})});
   queues[pid].sort((a,b)=>(a.di||0)-(b.di||0));
   applySplits(pid);
   ['jN','jH','jIfa'].forEach(id=>$(id).value='');$('jPending').checked=false;
+  if($('jNotes'))$('jNotes').value='';
   auditLog('job_added',{branch:activeBranch,name,hours:hrs,hrsPerWeek:hpw,pid});
   saveData();render();
 }
@@ -162,13 +164,14 @@ function deleteJobGroup(jid,pid){
 function openEdit(jid,pid){
   const job=(queues[pid]||[]).find(j=>j.id===jid);if(!job)return;
   editTarget={jid,pid,groupId:job.groupId||null,origName:job.name};
-  let name=job.name,hrs=job.hours,hpw=job.hrsPerWeek,ifa=job.ifaDate||'',pending=!!job.pending;
+  let name=job.name,hrs=job.hours,hpw=job.hrsPerWeek,ifa=job.ifaDate||'',pending=!!job.pending,notes=job.notes||'';
   if(job.groupId){
     const ps=(queues[pid]||[]).filter(j=>j.groupId===job.groupId).sort((a,b)=>(a.di||0)-(b.di||0));
-    name=ps[0].name;hrs=ps[0]._origHours||ps.reduce((s,j)=>s+j.hours,0);hpw=ps[0].hrsPerWeek;ifa=ps[0].ifaDate||'';pending=!!ps[0].pending;
+    name=ps[0].name;hrs=ps[0]._origHours||ps.reduce((s,j)=>s+j.hours,0);hpw=ps[0].hrsPerWeek;ifa=ps[0].ifaDate||'';pending=!!ps[0].pending;notes=ps[0].notes||'';
     editTarget.origName=name;
   }
   $('eN').value=name;$('eH').value=hrs;$('eHpw').value=Number(hpw)||40;$('eIfa').value=ifa;$('eShiftNote').textContent='';
+  if($('eNotes'))$('eNotes').value=notes;
   editTarget._pending=pending;setEditStatus(pending);$('editModal').classList.remove('hidden');
 }
 function setEditStatus(isPending){
@@ -194,12 +197,13 @@ function saveEdit(){
   const newIfa=validateDate($('eIfa').value||'');
   if(newIfa===null)return;
   const newPending=!!editTarget._pending;
-  if(groupId){(queues[pid]||[]).filter(j=>j.groupId===groupId).forEach(j=>{j.pending=newPending});mergeSplitGroup(groupId,pid)}
+  const newNotes=($('eNotes')?.value||'').trim().substring(0,500);
+  if(groupId){(queues[pid]||[]).filter(j=>j.groupId===groupId).forEach(j=>{j.pending=newPending;if(newNotes)j.notes=newNotes;else delete j.notes});mergeSplitGroup(groupId,pid)}
   const q=queues[pid]||[];
   let idx=q.findIndex(j=>j.id===jid);
   if(idx<0)idx=q.findIndex(j=>j.name===editTarget.origName);
   if(idx<0&&q.length)idx=0;
-  if(idx>=0){const j=q[idx];j.name=newName;j.hours=newHrs;j.hrsPerWeek=newHpw;j.ifaDate=newIfa;j.pending=newPending}
+  if(idx>=0){const j=q[idx];j.name=newName;j.hours=newHrs;j.hrsPerWeek=newHpw;j.ifaDate=newIfa;j.pending=newPending;if(newNotes)j.notes=newNotes;else delete j.notes}
   if(groupId)applySplits(pid);
   closeModal('editModal');editTarget=null;
   auditLog('job_edited',{branch:activeBranch,jid,pid,newName,newHrs,newHpw});
@@ -452,4 +456,29 @@ function renderVacHoursTracker(){
   if(direct.length){h+='<tr><td colspan="5" class="tbl-section" style="color:#1d4ed8;background:#dbeafe">Direct</td></tr>';direct.forEach(r=>h+=renderRow(r))}
   if(contract.length){h+='<tr><td colspan="5" class="tbl-section" style="color:#a16207;background:#fef9c3">Contractor</td></tr>';contract.forEach(r=>h+=renderRow(r))}
   el.innerHTML=h+'</tbody></table>';
+}
+
+/* ═══════════════════════════════════════════════
+   WEATHER HOLDS
+   ═══════════════════════════════════════════════ */
+function setWeatherHold(diIdx){
+  if(currentRole!=='lead'){toast('Lead access required.','err');return}
+  const d=days[diIdx];if(!d)return;
+  const dateStr=iso(d);
+  if(!branchData[activeBranch].weatherHolds)branchData[activeBranch].weatherHolds={};
+  const wh=branchData[activeBranch].weatherHolds;
+  const existing=wh[dateStr]||0;
+  const input=prompt(
+    existing
+      ?'Weather hold on '+fmtShort(d)+': '+existing+'h lost.\nEnter new hours (0–10), or 0 to clear:'
+      :'Add weather hold on '+fmtShort(d)+'.\nHours lost to weather (1–10):',
+    existing||''
+  );
+  if(input===null)return;
+  const n=parseFloat(input);
+  if(isNaN(n)||n<0||n>10){toast('Enter 0–10 hours.','err');return}
+  if(n===0)delete wh[dateStr];else wh[dateStr]=n;
+  auditLog('weather_hold_set',{branch:activeBranch,date:dateStr,hours:n});
+  saveData();render();
+  toast(n===0?'Weather hold cleared.':'Weather hold: '+n+'h on '+fmtShort(d)+'.','ok');
 }

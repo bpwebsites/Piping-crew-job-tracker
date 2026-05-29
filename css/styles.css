@@ -183,3 +183,15 @@ body.readonly .g-pill{cursor:default}
 .admin-code-lbl{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
 
 @media(max-width:800px){main{padding:1rem}.stats{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr 1fr}}
+
+@media print{
+  @page{size:landscape;margin:1cm}
+  #sidebar,.no-print,.pill-actions,.legend,.year-tabs,#masterYearTabs,
+  #addJobCard,#manageCrewCard,#setVacHoursCard,#manageCalPeopleCard,
+  #adminView,#timeOffView,.modal-bg,#toast,#dg,.stats,#masterTimelineWrap,
+  button{display:none!important}
+  main{margin-left:0!important;padding:.4cm!important;max-width:none!important}
+  body{background:#fff!important}
+  .gantt-outer{overflow:visible!important}
+  .card{box-shadow:none!important;border:1px solid #ddd!important;margin-bottom:.5cm!important}
+}

@@ -52,6 +52,8 @@ function initBranchTabs(){
    ═══════════════════════════════════════════════ */
 function toast(msg,type){const t=$('toast');t.textContent=msg;t.className=type||'ok';t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800)}
 
+function printView(){window.print()}
+
 /* auto-save wrapper */
 const _rA=refreshAll,_rnd=render;
 refreshAll=function(){_rA();saveData()};render=function(){_rnd();saveData()};
@@ -140,6 +142,7 @@ function renderAdmin(){
   $('adminHveEnabled').value=s.hveEnabled?'yes':'no';
   $('adminHveLabel').value=s.hveLabel||'HVE';
   $('adminHveGroupLabel').textContent=s.hveLabel||'HVE';
+  loadActivityLog();
 }
 
 async function adminSaveBranch(bid){
@@ -163,7 +166,7 @@ async function adminAddBranch(){
   if(BRANCHES.find(b=>b.id===id)){toast('A branch with that ID already exists.','err');return}
   const color=colorSel?colorSel.value:'blue';
   BRANCHES.push({id,label:name,color});
-  if(!branchData[id])branchData[id]={people:[],queues:{},vacations:{},nid:1,npid:1};
+  if(!branchData[id])branchData[id]={people:[],queues:{},vacations:{},weatherHolds:{},nid:1,npid:1};
   const ok=await saveCompanySetting('branches_config',BRANCHES);
   if(ok){toast('Branch "'+name+'" added.','ok');nameInp.value='';applyCompanySettings();renderAdmin()}
   else{BRANCHES.pop();toast('Save failed — check connection.','err')}
@@ -243,6 +246,47 @@ async function adminChangeLeadCode(){
   const ok=await saveCompanySetting('lead_code',code);
   if(ok){toast('Lead code updated.','ok');$('adminNewLeadCode').value=''}
   else toast('Save failed.','err');
+}
+
+async function loadActivityLog(){
+  const el=$('activityLogList');if(!el||!_sb)return;
+  el.innerHTML='<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Loading…</div>';
+  try{
+    const{data,error}=await _sb.from('audit_log').select('*').order('created_at',{ascending:false}).limit(100);
+    if(error||!data?.length){el.innerHTML='<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No activity recorded yet.</div>';return}
+    const rows=data.map(e=>{
+      const when=new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const who=e.user_email||'system';
+      const d=e.details||{};
+      let act='';
+      switch(e.action){
+        case 'job_added':act='Added "'+sanitize(d.name||'')+'" ('+d.hours+'h) → '+(d.branch||'');break;
+        case 'job_edited':act='Edited "'+sanitize(d.newName||'')+'" in '+(d.branch||'');break;
+        case 'job_deleted':act='Deleted "'+sanitize(d.name||'')+'" from '+(d.branch||'');break;
+        case 'job_moved':act='Moved "'+sanitize(d.name||'')+'" in '+(d.branch||'');break;
+        case 'job_completed':act='Completed "'+sanitize(d.displayName||d.normName||'')+'"';break;
+        case 'job_uncompleted':act='Undid completion of "'+sanitize(d.normName||'')+'"';break;
+        case 'person_added':act='Added '+sanitize(d.name||'')+' ('+d.type+') to '+(d.branch||'');break;
+        case 'person_removed':act='Removed '+sanitize(d.name||'')+' from '+(d.branch||'');break;
+        case 'vacation_added':act='Added vacation "'+sanitize(d.name||'')+'" ('+d.startIso+' – '+d.endIso+')';break;
+        case 'vacation_deleted':act='Deleted vacation in '+(d.branch||d.source||'');break;
+        case 'overtime_added':act='Overtime added on '+d.date;break;
+        case 'overtime_deleted':act='Overtime removed on '+d.date;break;
+        case 'weather_hold_set':act='Weather hold '+(d.hours?d.hours+'h on '+d.date:'cleared on '+d.date)+' ('+d.branch+')';break;
+        default:act=e.action.replace(/_/g,' ');
+      }
+      return'<tr style="border-bottom:.5px solid var(--border)">'
+        +'<td style="padding:5px 10px;font-size:11px;color:var(--text-muted);white-space:nowrap;font-family:var(--mono)">'+when+'</td>'
+        +'<td style="padding:5px 10px;font-size:11px;color:var(--text-muted);white-space:nowrap">'+sanitize(who)+'</td>'
+        +'<td style="padding:5px 10px;font-size:12px">'+act+'</td></tr>';
+    });
+    el.innerHTML='<div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:var(--bg);position:sticky;top:0">'
+      +'<th style="padding:5px 10px;font-size:11px;color:var(--text-muted);text-align:left;white-space:nowrap">Time</th>'
+      +'<th style="padding:5px 10px;font-size:11px;color:var(--text-muted);text-align:left">User</th>'
+      +'<th style="padding:5px 10px;font-size:11px;color:var(--text-muted);text-align:left">Action</th></tr></thead>'
+      +'<tbody>'+rows.join('')+'</tbody></table></div>';
+  }catch(err){el.innerHTML='<div style="color:var(--text-muted);font-size:12px;padding:8px 0">Unable to load activity log.</div>'}
 }
 
 async function adminChangeAdminCode(){

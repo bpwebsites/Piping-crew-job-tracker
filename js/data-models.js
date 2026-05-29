@@ -11,9 +11,9 @@
    STATE
    ═══════════════════════════════════════════════ */
 const branchData={
-  piping:{people:[],queues:{},vacations:{},nid:1,npid:1},
-  civil:{people:[],queues:{},vacations:{},nid:1,npid:1},
-  ie:{people:[],queues:{},vacations:{},nid:1,npid:1},
+  piping:{people:[],queues:{},vacations:{},weatherHolds:{},nid:1,npid:1},
+  civil:{people:[],queues:{},vacations:{},weatherHolds:{},nid:1,npid:1},
+  ie:{people:[],queues:{},vacations:{},weatherHolds:{},nid:1,npid:1},
 };
 let calendarPeople=[], calendarVacations={}, calNid=1, calNpid=1;
 let vacHoursAllowance={}, overtimeData={};
@@ -102,6 +102,7 @@ function _lsSaveBranches(){
       s.setItem('ct_'+b.id+'_p',JSON.stringify(bd.people));
       s.setItem('ct_'+b.id+'_q',JSON.stringify(bd.queues));
       s.setItem('ct_'+b.id+'_v',JSON.stringify(bd.vacations));
+      s.setItem('ct_'+b.id+'_wh',JSON.stringify(bd.weatherHolds||{}));
       s.setItem('ct_'+b.id+'_nid',String(bd.nid));
       s.setItem('ct_'+b.id+'_npid',String(bd.npid))});
   }catch(e){}
@@ -113,6 +114,7 @@ function _lsLoadBranches(){
       const qr=JSON.parse(sq),q2={};Object.keys(qr).forEach(k=>q2[Number(k)]=qr[k]);
       const vr=JSON.parse(s.getItem('ct_'+b.id+'_v')||'{}'),v2={};Object.keys(vr).forEach(k=>v2[Number(k)]=vr[k]);
       branchData[b.id]={people:JSON.parse(sp),queues:q2,vacations:v2,
+        weatherHolds:JSON.parse(s.getItem('ct_'+b.id+'_wh')||'{}'),
         nid:Number(s.getItem('ct_'+b.id+'_nid')||1),npid:Number(s.getItem('ct_'+b.id+'_npid')||1)};
     });
     if(any){loadBranch(activeBranch);return true}
