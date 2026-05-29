@@ -465,21 +465,21 @@ function renderStats(){
   const hveStats=yrStats(queues[0]||[]),isHVEFocus=focusPid===0,isCrewFocus=focusPid!==null&&focusPid!==0;
   const crew=people.filter(p=>p.id!==0);
   $('statHVE').style.display=isCrewFocus?'none':'';
-  $('statHVElbl').textContent=yr+' HVE Man Hours';$('sHVE').textContent=hveStats.hrs.toLocaleString();
-  $('sHVEn').textContent=hveStats.jobs+' job'+(hveStats.jobs!==1?'s':'')+' in '+yr;
+  $('statHVElbl').textContent=yr+' HVE Hours';$('sHVE').textContent=hveStats.hrs.toLocaleString();
+  $('sHVEn').textContent=hveStats.jobs+' job'+(hveStats.jobs!==1?'s':'')+' · '+yr;
   $('statHVE').className='stat'+(isHVEFocus?' selected':'');
   $('statTH').style.display=isHVEFocus?'none':'';
   if(isHVEFocus){
-    $('sTJ').textContent=hveStats.jobs;$('statTJlbl').textContent=yr+' HVE Jobs';$('sTJn').textContent='in '+yr;$('statTJ').className='stat selected';
+    $('sTJ').textContent=hveStats.jobs;$('statTJlbl').textContent=yr+' HVE Jobs';$('sTJn').textContent=yr;$('statTJ').className='stat selected';
   } else if(isCrewFocus){
     const fp=people.find(p=>p.id===focusPid),fs=yrStats(queues[focusPid]||[]);
-    $('sTJ').textContent=fs.jobs;$('statTJlbl').textContent=yr+' Jobs';$('sTJn').textContent=(fp?.name||'')+' in '+yr;
-    $('sTH').textContent=fs.hrs.toLocaleString();$('statTHlbl').textContent=yr+' Man Hours';$('sTHn').textContent=(fp?.name||'')+' in '+yr;
+    $('sTJ').textContent=fs.jobs;$('statTJlbl').textContent=yr+' Jobs';$('sTJn').textContent=fp?.name||'';
+    $('sTH').textContent=fs.hrs.toLocaleString();$('statTHlbl').textContent=yr+' Man Hours';$('sTHn').textContent=fp?.name||'';
     $('statTJ').className='stat selected';$('statTH').className='stat selected';
   } else {
     const tot=crew.reduce((s,p)=>{const ps=yrStats(queues[p.id]||[]);return{jobs:s.jobs+ps.jobs,hrs:s.hrs+ps.hrs}},{jobs:0,hrs:0});
-    $('sTJ').textContent=tot.jobs;$('statTJlbl').textContent=yr+' Total Jobs';$('sTJn').textContent='crew only · '+yr;
-    $('sTH').textContent=tot.hrs.toLocaleString();$('statTHlbl').textContent=yr+' Total Man Hours';$('sTHn').textContent='crew only · '+yr;
+    $('sTJ').textContent=tot.jobs;$('statTJlbl').textContent=yr+' Jobs';$('sTJn').textContent='crew · '+yr;
+    $('sTH').textContent=tot.hrs.toLocaleString();$('statTHlbl').textContent=yr+' Man Hours';$('sTHn').textContent='crew · '+yr;
     $('statTJ').className='stat';$('statTH').className='stat';
   }
 }

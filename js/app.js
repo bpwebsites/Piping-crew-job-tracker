@@ -85,8 +85,6 @@ function applyCompanySettings(){
   if(hveCard)hveCard.style.display=s.hveEnabled?'':'none';
   const hveLbl=$('statHVElbl');
   if(hveLbl)hveLbl.textContent=(s.hveLabel||'HVE')+' Man Hours';
-  const statsGrid=document.querySelector('.stats');
-  if(statsGrid)statsGrid.style.gridTemplateColumns=s.hveEnabled?'1fr 1fr 1fr':'1fr 1fr';
   // Company name — browser tab + sidebar
   const name=s.companyName||'';
   document.title=name?name+' — CrewTimeline':'CrewTimeline';
