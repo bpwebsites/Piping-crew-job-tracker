@@ -235,7 +235,6 @@ function renderVacCalendar(){
 
   function renderVacRow(pName,vacs,source,pid,pType){
     const visVacs=vacs.filter(v=>{const vs=calDi(fromIso(v.startIso)),ve=calDi(fromIso(v.endIso));return vs<calDays.length&&ve>=0});
-    if(!visVacs.length)return'';
     const rh=VPP+VPH+VPP,key=source+':'+pid,used=getVacHoursUsed(vacs),total=vacHoursAllowance[key]||0;
     const remaining=total-used,overBudget=total>0&&remaining<0;
     const hrsColor=overBudget?'#ef4444':total>0&&remaining<total*.2?'#f59e0b':'var(--text-muted)';
@@ -275,15 +274,16 @@ function renderVacCalendar(){
   }
 
   const allVacPeople=[];
+  const _seenVac=new Set();
   BRANCHES.forEach(br=>{const bd=branchData[br.id];
-    bd.people.filter(p=>p.id!==0&&(bd.vacations[p.id]||[]).some(v=>{const vs=calDi(fromIso(v.startIso)),ve=calDi(fromIso(v.endIso));return vs<calDays.length&&ve>=0})).forEach(p=>allVacPeople.push({name:p.name,vacs:bd.vacations[p.id]||[],source:br.id,pid:p.id,type:p.type||'direct'}))});
-  calendarPeople.filter(p=>(calendarVacations[p.id]||[]).some(v=>{const vs=calDi(fromIso(v.startIso)),ve=calDi(fromIso(v.endIso));return vs<calDays.length&&ve>=0})).forEach(p=>allVacPeople.push({name:p.name,vacs:calendarVacations[p.id]||[],source:'cal',pid:p.id,type:p.type||'direct'}));
+    bd.people.filter(p=>p.id!==0).forEach(p=>{const k=br.id+':'+p.id;if(!_seenVac.has(k)){_seenVac.add(k);allVacPeople.push({name:p.name,vacs:bd.vacations[p.id]||[],source:br.id,pid:p.id,type:p.type||'direct'})}})});
+  calendarPeople.forEach(p=>allVacPeople.push({name:p.name,vacs:calendarVacations[p.id]||[],source:'cal',pid:p.id,type:p.type||'direct'}));
   allVacPeople.sort((a,b)=>lastName(a.name).localeCompare(lastName(b.name)));
   const directP=allVacPeople.filter(p=>p.type==='direct'),contractP=allVacPeople.filter(p=>p.type!=='direct');
 
   if(directP.length){anyRows=true;b+=calGroupHdr('Direct','#dbeafe','#1d4ed8','#93c5fd');directP.forEach(p=>b+=renderVacRow(p.name,p.vacs,p.source,p.pid,p.type))}
   if(contractP.length){anyRows=true;b+=calGroupHdr('Contractor','#fef9c3','#a16207','#fde047');contractP.forEach(p=>b+=renderVacRow(p.name,p.vacs,p.source,p.pid,p.type))}
-  if(!anyRows)b+='<div style="text-align:center;padding:3rem;color:var(--text-muted);font-size:14px">No vacations scheduled for '+vacViewYear+'.</div>';
+  if(!anyRows)b+='<div style="text-align:center;padding:3rem;color:var(--text-muted);font-size:14px">No crew members added yet.</div>';
   $('vacGantt').innerHTML=h+b+'</div>';
   const o=$('vacGanttOuter');
   if(o&&todayIdx>=0&&!o._scrolled){if(vacViewYear===today0().getFullYear())o.scrollLeft=Math.max(0,165+todayIdx*VCW-o.clientWidth/2);o._scrolled=true}
