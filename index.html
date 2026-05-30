@@ -314,6 +314,14 @@
     <div class="mfg"><label>IFA Request Date (optional)</label><input type="date" id="eIfa"/></div>
     <p id="eShiftNote" style="font-size:11px;color:var(--text-muted);margin-top:-4px;margin-bottom:8px"></p>
     <div class="mfg"><label>Notes (optional)</label><textarea id="eNotes" rows="2" maxlength="500" style="width:100%;resize:vertical;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);border:1px solid rgba(0,0,0,.15);border-radius:var(--r);padding:8px 10px;outline:none;line-height:1.4;box-sizing:border-box"></textarea></div>
+    <div class="mfg" style="border-top:.5px solid var(--border);padding-top:12px">
+      <label>Copy to branch</label>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <select id="copyBranch" onchange="updateCopyPersonSelect()" class="form-sel" style="flex:1"><option value="">-- branch --</option></select>
+        <select id="copyPerson" class="form-sel" style="flex:1"><option value="">-- person --</option></select>
+        <button class="btn-ghost" onclick="copyJobToBranch()" style="white-space:nowrap;flex-shrink:0">Copy &#8594;</button>
+      </div>
+    </div>
     <div class="mfg" style="margin-bottom:14px">
       <label style="font-size:12px;color:var(--text-muted);font-weight:500">Status</label>
       <div id="eStatusWrap" style="display:flex;gap:6px;margin-top:6px">

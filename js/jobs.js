@@ -172,6 +172,8 @@ function openEdit(jid,pid){
   }
   $('eN').value=name;$('eH').value=hrs;$('eHpw').value=Number(hpw)||40;$('eIfa').value=ifa;$('eShiftNote').textContent='';
   if($('eNotes'))$('eNotes').value=notes;
+  const copyBr=$('copyBranch');
+  if(copyBr){copyBr.innerHTML='<option value="">-- branch --</option>';BRANCHES.forEach(br=>{const o=document.createElement('option');o.value=br.id;o.textContent=br.name;copyBr.appendChild(o)});$('copyPerson').innerHTML='<option value="">-- person --</option>';}
   editTarget._pending=pending;setEditStatus(pending);$('editModal').classList.remove('hidden');
 }
 function setEditStatus(isPending){
@@ -208,6 +210,45 @@ function saveEdit(){
   closeModal('editModal');editTarget=null;
   auditLog('job_edited',{branch:activeBranch,jid,pid,newName,newHrs,newHpw});
   saveData();render();toast('Job updated.','ok');
+}
+
+/* Copy job to another branch */
+function updateCopyPersonSelect(){
+  const bid=$('copyBranch').value,sel=$('copyPerson');
+  sel.innerHTML='<option value="">-- person --</option>';
+  if(!bid)return;
+  const bd=branchData[bid];
+  const hOpt=document.createElement('option');hOpt.value=0;hOpt.textContent='HVE';sel.appendChild(hOpt);
+  bd.people.filter(p=>p.id!==0).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;sel.appendChild(o)});
+}
+function copyJobToBranch(){
+  if(!editTarget)return;
+  const targetBid=$('copyBranch').value;
+  if(!targetBid){toast('Select a branch.','err');return}
+  const targetPidRaw=$('copyPerson').value;
+  if(targetPidRaw===''){toast('Select a person.','err');return}
+  const targetPid=Number(targetPidRaw);
+  const{jid,pid,groupId}=editTarget;
+  let name,hrs,hpw,ifa,notes,pending;
+  if(groupId){
+    const ps=(queues[pid]||[]).filter(j=>j.groupId===groupId).sort((a,b)=>(a.di||0)-(b.di||0));
+    name=ps[0].name;hrs=ps[0]._origHours||ps.reduce((s,j)=>s+j.hours,0);hpw=ps[0].hrsPerWeek;ifa=ps[0].ifaDate||'';notes=ps[0].notes||'';pending=!!ps[0].pending;
+  } else {
+    const job=(queues[pid]||[]).find(j=>j.id===jid);if(!job)return;
+    name=job.name;hrs=job.hours;hpw=job.hrsPerWeek;ifa=job.ifaDate||'';notes=job.notes||'';pending=!!job.pending;
+  }
+  const tBd=branchData[targetBid];
+  if(!tBd.queues[targetPid])tBd.queues[targetPid]=[];
+  const tQ=tBd.queues[targetPid];
+  let sw=minDi();
+  if(tQ.length){const last=tQ[tQ.length-1];sw=Math.max(sw,(last.di||0)+daysFor(last.hours,last.hrsPerWeek))}
+  tBd.queues[targetPid].push({id:tBd.nid++,name,hours:hrs,hrsPerWeek:hpw,ifaDate:ifa,di:sw,pid:targetPid,pending,...(notes?{notes}:{})});
+  tBd.queues[targetPid].sort((a,b)=>(a.di||0)-(b.di||0));
+  const brLabel=BRANCHES.find(b=>b.id===targetBid)?.name||targetBid;
+  const pLabel=tBd.people.find(p=>p.id===targetPid)?.name||'HVE';
+  auditLog('job_copied',{fromBranch:activeBranch,toBranch:targetBid,name,toPid:targetPid});
+  saveData();
+  toast('Copied "'+name+'" → '+pLabel+' ('+brLabel+').','ok');
 }
 
 /* Confirm modal */
